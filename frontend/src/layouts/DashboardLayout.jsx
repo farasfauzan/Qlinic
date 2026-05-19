@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  Bell,
   CalendarDays,
   ClipboardList,
   HeartPulse,
@@ -50,42 +51,46 @@ export function DashboardLayout({ title, subtitle, children }) {
   }
 
   const sidebar = (
-    <aside className="flex h-full w-72 flex-col border-r border-white/10 bg-navy text-white">
-      <div className="flex items-center gap-3 px-6 py-6">
-        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-clinical text-white">
+    <aside className="flex h-full w-72 flex-col border-r border-white/10 bg-[linear-gradient(180deg,#07172c_0%,#0b1f3a_58%,#12395f_100%)] text-white shadow-nav">
+      <div className="px-5 py-5">
+        <div className="flex items-center gap-3 rounded-2xl bg-white/10 p-3 ring-1 ring-white/10">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-clinical text-white shadow-lg shadow-sky-950/20">
           <HeartPulse className="h-6 w-6" />
         </div>
         <div>
           <p className="text-xl font-bold">Qlinic</p>
-          <p className="text-xs text-sky-100">Digital clinic queue</p>
+          <p className="text-xs text-sky-100">Clinic queue system</p>
+        </div>
         </div>
       </div>
-      <nav className="flex-1 space-y-1 px-4">
+      <nav className="flex-1 space-y-1.5 px-4">
         {items.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             onClick={() => setOpen(false)}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition ${
-                isActive ? "bg-white text-navy" : "text-sky-50 hover:bg-white/10"
+              `group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
+                isActive
+                  ? "bg-white text-navy shadow-lg shadow-sky-950/10"
+                  : "text-sky-50 hover:bg-white/10 hover:text-white"
               }`
             }
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className="h-5 w-5 shrink-0" />
             {item.label}
           </NavLink>
         ))}
       </nav>
       <div className="border-t border-white/10 p-4">
-        <div className="mb-3 rounded-lg bg-white/10 p-3">
+        <div className="mb-3 rounded-xl bg-white/10 p-3 ring-1 ring-white/10">
           <p className="text-sm font-semibold">{user?.nama}</p>
           <p className="text-xs capitalize text-sky-100">{user?.role}</p>
         </div>
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-navy hover:bg-sky-50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-navy hover:bg-sky-50"
         >
           <LogOut className="h-4 w-4" />
           Logout
@@ -95,7 +100,7 @@ export function DashboardLayout({ title, subtitle, children }) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-cloud">
       <div className="fixed inset-y-0 left-0 z-30 hidden lg:block">{sidebar}</div>
       {open ? (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -105,24 +110,39 @@ export function DashboardLayout({ title, subtitle, children }) {
       ) : null}
 
       <main className="lg:pl-72">
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-clinical">Qlinic</p>
-              <h1 className="text-2xl font-bold text-navy">{title}</h1>
+              <p className="text-xs font-bold uppercase tracking-wider text-clinical">Qlinic Workspace</p>
+              <h1 className="text-2xl font-bold tracking-tight text-navy">{title}</h1>
               {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen((value) => !value)}
-              className="rounded-lg border border-slate-200 p-2 text-navy lg:hidden"
-              aria-label="Buka menu"
-            >
-              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 sm:flex">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Online
+              </div>
+              <button
+                type="button"
+                className="hidden rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm hover:bg-slate-50 sm:inline-flex"
+                aria-label="Notifikasi"
+              >
+                <Bell className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen((value) => !value)}
+                className="rounded-xl border border-slate-200 bg-white p-2 text-navy shadow-sm lg:hidden"
+                aria-label="Buka menu"
+              >
+                {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </header>
-        <section className="px-4 py-6 sm:px-6 lg:px-8">{children}</section>
+        <section className="px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </section>
       </main>
     </div>
   );

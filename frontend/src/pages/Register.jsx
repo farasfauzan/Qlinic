@@ -34,16 +34,16 @@ export default function Register() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-xl rounded-lg border border-slate-200 bg-white p-6 shadow-soft">
+    <main className="flex min-h-screen items-center justify-center bg-cloud px-4 py-10">
+      <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
         <Link to="/" className="mb-6 inline-flex items-center gap-3 text-navy">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-clinical text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-clinical text-white shadow-lg shadow-sky-950/10">
             <HeartPulse className="h-5 w-5" />
           </div>
           <span className="text-xl font-bold">Qlinic</span>
         </Link>
         <p className="text-sm font-semibold text-clinical">Register Pasien</p>
-        <h1 className="mt-1 text-3xl font-bold text-navy">Buat akun pasien</h1>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-navy">Buat akun pasien</h1>
 
         <form onSubmit={handleSubmit} className="mt-6 grid gap-4 sm:grid-cols-2">
           {[
@@ -57,7 +57,7 @@ export default function Register() {
               <input
                 value={form[field]}
                 onChange={(event) => updateField(field, event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-clinical focus:ring-2 focus:ring-sky-100"
+                className="form-control mt-1"
                 placeholder={placeholder}
                 required
               />
@@ -69,7 +69,7 @@ export default function Register() {
               type="password"
               value={form.password}
               onChange={(event) => updateField("password", event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-clinical focus:ring-2 focus:ring-sky-100"
+              className="form-control mt-1"
               placeholder="Minimal 6 karakter"
               minLength={6}
               required
@@ -77,10 +77,10 @@ export default function Register() {
           </label>
 
           <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-navy px-5 py-3 font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70 sm:col-span-2"
-          >
+          type="submit"
+          disabled={loading}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-navy px-5 py-3 font-semibold text-white shadow-lg shadow-slate-900/10 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70 sm:col-span-2"
+        >
             <UserPlus className="h-5 w-5" />
             {loading ? "Mendaftarkan..." : "Register"}
           </button>

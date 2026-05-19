@@ -54,7 +54,7 @@ export default function DoctorDashboard() {
             <StatCard icon={CheckCircle2} label="Antrean Aktif" value={pending.length} hint="Status Pending" tone="green" />
           </div>
 
-          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="app-card rounded-2xl p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-navy">Daftar Pasien Booking</h2>
               <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-clinical">

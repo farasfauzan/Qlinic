@@ -34,7 +34,7 @@ export default function DoctorPatients() {
       ) : bookings.length ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {bookings.map((booking) => (
-            <article key={booking.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <article key={booking.id} className="app-card rounded-2xl p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold text-navy">{booking.pasien_nama}</h2>
@@ -114,7 +114,7 @@ function MedicalRecordModal({ booking, onClose, onSaved }) {
   return (
     <Modal title={`Rekam Medis ${booking.pasien_nama}`} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="rounded-lg bg-sky-50 p-4 text-sm text-slate-700">
+        <div className="rounded-xl bg-sky-50 p-4 text-sm text-slate-700">
           <p className="font-semibold text-navy">
             {formatDate(booking.tanggal_kunjungan)} - {formatTime(booking.jam_slot)} - Antrean #
             {booking.nomor_antrean}
@@ -174,7 +174,7 @@ function MedicalRecordModal({ booking, onClose, onSaved }) {
 
 function Info({ label, value }) {
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
+    <div className="rounded-xl bg-slate-50 p-3">
       <p className="text-xs text-slate-500">{label}</p>
       <p className="font-semibold text-navy">{value}</p>
     </div>

@@ -59,7 +59,7 @@ export default function AdminPolyclinics() {
         ) : polyclinics.length ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {polyclinics.map((item) => (
-              <article key={item.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={item.id} className="app-card rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-bold text-navy">{item.nama_poli}</h2>

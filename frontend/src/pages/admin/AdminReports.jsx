@@ -76,12 +76,12 @@ export default function AdminReports() {
 
 function ReportTable({ title, rows = [], columns }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="app-card rounded-2xl p-5">
       <h2 className="mb-4 text-lg font-bold text-navy">{title}</h2>
       <div className="space-y-2">
         {rows.length ? (
           rows.map((row, index) => (
-            <div key={index} className="grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+            <div key={index} className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-sm">
               {columns.map(([key, label, formatter]) => (
                 <div key={key}>
                   <p className="text-xs text-slate-500">{label}</p>

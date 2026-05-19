@@ -18,7 +18,7 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    radial-gradient(circle at top left, rgba(29, 155, 240, 0.12), transparent 28rem),
+    linear-gradient(180deg, rgba(232, 244, 255, 0.9), rgba(245, 248, 252, 0.95) 18rem),
     #f5f8fc;
 }
 
@@ -27,6 +27,39 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+::selection {
+  background: rgba(29, 155, 240, 0.2);
+  color: #0b1f3a;
+}
+
+.app-card {
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.06);
+}
+
+.app-card:hover {
+  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.09);
+}
+
+.form-control {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  padding: 0.8rem 1rem;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.form-control:focus {
+  border-color: #1d9bf0;
+  box-shadow: 0 0 0 4px rgba(29, 155, 240, 0.12);
 }
 
 .glass-panel {

@@ -31,10 +31,16 @@ export default function Login() {
   }
 
   return (
-    <main className="grid min-h-screen lg:grid-cols-[1fr_520px]">
-      <section className="hidden bg-navy p-12 text-white lg:flex lg:flex-col lg:justify-between">
+    <main className="grid min-h-screen bg-cloud lg:grid-cols-[1fr_520px]">
+      <section
+        className="hidden bg-cover bg-center p-12 text-white lg:flex lg:flex-col lg:justify-between"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, rgba(7, 23, 44, 0.92), rgba(11, 31, 58, 0.78)), url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1400&q=85')"
+        }}
+      >
         <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-clinical">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-clinical shadow-lg shadow-sky-950/20">
             <HeartPulse className="h-6 w-6" />
           </div>
           <span className="text-2xl font-bold">Qlinic</span>
@@ -46,24 +52,31 @@ export default function Login() {
           <h1 className="max-w-xl text-5xl font-bold leading-tight">
             Masuk sesuai role dan lanjutkan alur klinik.
           </h1>
+          <div className="mt-8 grid max-w-lg grid-cols-3 gap-3">
+            {["Pasien", "Dokter", "Admin"].map((role) => (
+              <div key={role} className="rounded-2xl bg-white/10 p-4 text-sm font-semibold ring-1 ring-white/15 backdrop-blur">
+                {role}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-soft">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
           <div className="mb-6">
             <p className="text-sm font-semibold text-clinical">Login Qlinic</p>
-            <h2 className="mt-1 text-3xl font-bold text-navy">Selamat datang</h2>
+            <h2 className="mt-1 text-3xl font-bold tracking-tight text-navy">Selamat datang</h2>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-3 gap-2 rounded-lg bg-slate-100 p-1">
+            <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-100 p-1">
               {["pasien", "dokter", "admin"].map((role) => (
                 <button
                   key={role}
                   type="button"
                   onClick={() => setForm((value) => ({ ...value, role }))}
-                  className={`rounded-md px-3 py-2 text-sm font-semibold capitalize ${
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold capitalize transition ${
                     form.role === role ? "bg-white text-navy shadow-sm" : "text-slate-500"
                   }`}
                 >
@@ -79,7 +92,7 @@ export default function Login() {
               <input
                 value={form.email}
                 onChange={(event) => setForm((value) => ({ ...value, email: event.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-clinical focus:ring-2 focus:ring-sky-100"
+                className="form-control mt-1"
                 placeholder={form.role === "admin" ? "admin" : "nama@email.com"}
                 required
               />
@@ -93,7 +106,7 @@ export default function Login() {
                 onChange={(event) =>
                   setForm((value) => ({ ...value, password: event.target.value }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-clinical focus:ring-2 focus:ring-sky-100"
+                className="form-control mt-1"
                 placeholder="Masukkan password"
                 required
               />
@@ -102,7 +115,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-navy px-5 py-3 font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-navy px-5 py-3 font-semibold text-white shadow-lg shadow-slate-900/10 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
               <LogIn className="h-5 w-5" />
               {loading ? "Memproses..." : "Login"}

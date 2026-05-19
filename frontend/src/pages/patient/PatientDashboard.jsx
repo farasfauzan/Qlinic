@@ -73,7 +73,7 @@ export default function PatientDashboard() {
           </div>
 
           <div className="grid gap-5 lg:grid-cols-[1.4fr_0.8fr]">
-            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="app-card rounded-2xl p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <h2 className="text-lg font-bold text-navy">Ringkasan Janji Temu</h2>
                 <Link
@@ -85,7 +85,7 @@ export default function PatientDashboard() {
                 </Link>
               </div>
               {upcoming ? (
-                <div className="rounded-lg bg-sky-50 p-5">
+                <div className="rounded-xl bg-sky-50 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-sm text-slate-500">Booking berikutnya</p>
@@ -95,15 +95,15 @@ export default function PatientDashboard() {
                     <StatusBadge status={upcoming.status_booking} />
                   </div>
                   <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-lg bg-white p-4">
+                    <div className="rounded-xl bg-white p-4">
                       <p className="text-xs text-slate-500">Tanggal</p>
                       <p className="font-semibold text-navy">{formatDate(upcoming.tanggal_kunjungan)}</p>
                     </div>
-                    <div className="rounded-lg bg-white p-4">
+                    <div className="rounded-xl bg-white p-4">
                       <p className="text-xs text-slate-500">Jam</p>
                       <p className="font-semibold text-navy">{formatTime(upcoming.jam_slot)}</p>
                     </div>
-                    <div className="rounded-lg bg-white p-4">
+                    <div className="rounded-xl bg-white p-4">
                       <p className="text-xs text-slate-500">Antrean</p>
                       <p className="font-semibold text-navy">#{upcoming.nomor_antrean}</p>
                     </div>
@@ -117,7 +117,7 @@ export default function PatientDashboard() {
               )}
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="app-card rounded-2xl p-5">
               <h2 className="mb-4 text-lg font-bold text-navy">Riwayat Terbaru</h2>
               {records.length ? (
                 <div className="space-y-3">

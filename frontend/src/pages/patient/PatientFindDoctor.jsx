@@ -48,7 +48,7 @@ export default function PatientFindDoctor() {
         <LoadingState />
       ) : (
         <div className="space-y-5">
-          <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_260px]">
+          <div className="grid gap-3 app-card rounded-2xl p-4 md:grid-cols-[1fr_260px]">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
@@ -78,10 +78,10 @@ export default function PatientFindDoctor() {
           {filteredDoctors.length ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredDoctors.map((doctor, index) => (
-                <article key={doctor.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                <article key={doctor.id} className="app-card rounded-2xl p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-sky-50 text-clinical">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-clinical">
                         <Stethoscope className="h-6 w-6" />
                       </div>
                       <div>
@@ -172,7 +172,7 @@ function BookingModal({ doctor, onClose }) {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-lg bg-sky-50 p-4">
+          <div className="rounded-xl bg-sky-50 p-4">
             <p className="font-semibold text-navy">{doctor.nama}</p>
             <p className="text-sm text-slate-600">
               {doctor.spesialisasi} - {doctor.jadwal_praktik}

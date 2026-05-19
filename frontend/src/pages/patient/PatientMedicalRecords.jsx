@@ -29,9 +29,9 @@ export default function PatientMedicalRecords() {
       ) : records.length ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {records.map((record) => (
-            <article key={record.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <article key={record.id} className="app-card rounded-2xl p-5">
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-sky-50 text-clinical">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-clinical">
                   <FileText className="h-5 w-5" />
                 </div>
                 <div>

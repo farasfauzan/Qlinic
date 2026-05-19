@@ -43,7 +43,7 @@ export default function DoctorSchedule() {
   return (
     <DashboardLayout title="Schedule" subtitle="Lihat antrean dan jadwal pasien berdasarkan tanggal.">
       <div className="space-y-5">
-        <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[220px_220px_auto]">
+        <div className="grid gap-3 app-card rounded-2xl p-4 sm:grid-cols-[220px_220px_auto]">
           <input
             type="date"
             value={tanggal}
@@ -71,7 +71,7 @@ export default function DoctorSchedule() {
         ) : bookings.length ? (
           <div className="grid gap-3">
             {bookings.map((booking) => (
-              <article key={booking.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={booking.id} className="app-card rounded-2xl p-5">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <h2 className="font-bold text-navy">{booking.pasien_nama}</h2>

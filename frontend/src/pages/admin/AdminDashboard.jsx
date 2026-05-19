@@ -36,11 +36,11 @@ export default function AdminDashboard() {
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="app-card rounded-2xl p-5">
               <h2 className="mb-4 text-lg font-bold text-navy">Booking Berdasarkan Status</h2>
               <div className="space-y-3">
                 {summary.booking_by_status.map((item) => (
-                  <div key={item.status_booking} className="flex items-center justify-between rounded-lg bg-slate-50 p-4">
+                  <div key={item.status_booking} className="flex items-center justify-between rounded-xl bg-slate-50 p-4">
                     <span className="font-semibold text-navy">{item.status_booking}</span>
                     <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-clinical">
                       {item.total}
@@ -50,11 +50,11 @@ export default function AdminDashboard() {
               </div>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="app-card rounded-2xl p-5">
               <h2 className="mb-4 text-lg font-bold text-navy">Dokter Terbanyak Booking</h2>
               <div className="space-y-3">
                 {summary.top_doctors.map((doctor, index) => (
-                  <div key={doctor.dokter_nama} className="flex items-center justify-between rounded-lg bg-slate-50 p-4">
+                  <div key={doctor.dokter_nama} className="flex items-center justify-between rounded-xl bg-slate-50 p-4">
                     <div>
                       <p className="font-semibold text-navy">
                         {index + 1}. {doctor.dokter_nama}

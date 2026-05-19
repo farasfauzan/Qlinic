@@ -64,7 +64,7 @@ export default function AdminBookings() {
   return (
     <DashboardLayout title="Booking/Antrean" subtitle="Monitor semua booking dan nomor antrean klinik.">
       <div className="space-y-5">
-        <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3">
+        <div className="grid gap-3 app-card rounded-2xl p-4 md:grid-cols-3">
           <input
             type="date"
             value={filters.tanggal}
@@ -100,7 +100,7 @@ export default function AdminBookings() {
         {loading ? (
           <LoadingState />
         ) : bookings.length ? (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
