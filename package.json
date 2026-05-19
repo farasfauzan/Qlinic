@@ -1,0 +1,16 @@
+{
+  "name": "qlinic",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Qlinic fullstack appointment booking and digital queue system.",
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "db:setup": "npm run db:setup --prefix backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
