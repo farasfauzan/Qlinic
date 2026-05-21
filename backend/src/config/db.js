@@ -10,7 +10,8 @@ export const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   namedPlaceholders: false,
-  timezone: "+07:00"
+  timezone: "+07:00",
+  ssl: env.db.ssl ? { rejectUnauthorized: false } : undefined
 });
 
 export async function withTransaction(handler) {

@@ -16,7 +16,8 @@ export const env = {
     port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER || "root",
     password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME || "qlinic"
+    database: process.env.DB_NAME || "qlinic",
+    ssl: process.env.DB_SSL === "true"
   },
   jwtSecret: process.env.JWT_SECRET || "qlinic_local_secret",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1d"
