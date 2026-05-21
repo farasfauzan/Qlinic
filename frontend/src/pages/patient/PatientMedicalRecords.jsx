@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState, LoadingState } from "../../components/States";
 import { useAuth } from "../../context/AuthContext";
 import { formatDate, formatTime } from "../../utils";
@@ -43,6 +44,9 @@ export default function PatientMedicalRecords() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(null);
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     async function loadRecords() {
@@ -102,6 +106,10 @@ export default function PatientMedicalRecords() {
   );
 
   function handleLogout() {
+    setConfirmLogoutOpen(true);
+  }
+
+  function confirmLogout() {
     logout();
     navigate("/login");
   }
@@ -112,6 +120,16 @@ export default function PatientMedicalRecords() {
       return;
     }
 
+    setConfirmAction({
+      type: "download",
+      title: "Download riwayat rekam medis?",
+      description: "File berisi data kesehatan pribadi. Simpan hanya di perangkat yang aman dan jangan bagikan sembarangan.",
+      confirmLabel: "Ya, download",
+      details: [{ label: "Jumlah data", value: `${records.length} rekam medis` }]
+    });
+  }
+
+  function downloadRecords() {
     const blob = new Blob([JSON.stringify(records, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -119,6 +137,7 @@ export default function PatientMedicalRecords() {
     link.download = "qlinic-rekam-medis.json";
     link.click();
     URL.revokeObjectURL(url);
+    setConfirmAction(null);
     toast.success("Riwayat berhasil diunduh");
   }
 
@@ -134,6 +153,28 @@ export default function PatientMedicalRecords() {
       toast.success("Ringkasan disalin");
     } catch (_error) {
       toast.error("Gagal menyalin ringkasan");
+    }
+  }
+
+  async function confirmRecordAction() {
+    if (!confirmAction) return;
+
+    if (confirmAction.type === "download") {
+      downloadRecords();
+      return;
+    }
+
+    if (confirmAction.type === "print") {
+      setConfirmAction(null);
+      window.print();
+      return;
+    }
+
+    if (confirmAction.type === "share") {
+      setActionLoading(true);
+      await handleShare(confirmAction.record);
+      setActionLoading(false);
+      setConfirmAction(null);
     }
   }
 
@@ -172,8 +213,24 @@ export default function PatientMedicalRecords() {
 
                 <RecordDetail
                   record={selectedRecord}
-                  onPrint={() => window.print()}
-                  onShare={() => handleShare(selectedRecord)}
+                  onPrint={() =>
+                    setConfirmAction({
+                      type: "print",
+                      title: "Cetak rekam medis ini?",
+                      description: "Pastikan printer atau PDF tujuan aman karena dokumen berisi informasi kesehatan pribadi.",
+                      confirmLabel: "Ya, cetak",
+                      record: selectedRecord
+                    })
+                  }
+                  onShare={() =>
+                    setConfirmAction({
+                      type: "share",
+                      title: "Salin ringkasan rekam medis?",
+                      description: "Ringkasan akan disalin ke clipboard perangkat. Data di clipboard bisa ditempel ke aplikasi lain.",
+                      confirmLabel: "Ya, salin",
+                      record: selectedRecord
+                    })
+                  }
                 />
               </div>
             </div>
@@ -189,6 +246,32 @@ export default function PatientMedicalRecords() {
       </main>
 
       <Footer />
+
+      {confirmLogoutOpen ? (
+        <ConfirmDialog
+          title="Keluar dari akun?"
+          description="Sesi Anda akan ditutup. Anda perlu login kembali untuk melihat janji temu dan rekam medis."
+          confirmLabel="Ya, keluar"
+          cancelLabel="Tetap di halaman"
+          tone="warning"
+          onConfirm={confirmLogout}
+          onCancel={() => setConfirmLogoutOpen(false)}
+        />
+      ) : null}
+
+      {confirmAction ? (
+        <ConfirmDialog
+          title={confirmAction.title}
+          description={confirmAction.description}
+          details={confirmAction.details || buildRecordDetails(confirmAction.record)}
+          confirmLabel={confirmAction.confirmLabel}
+          cancelLabel="Kembali"
+          tone="warning"
+          loading={actionLoading}
+          onConfirm={confirmRecordAction}
+          onCancel={() => setConfirmAction(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -588,6 +671,16 @@ function buildAdvice(record) {
     .map((item) => `${item}.`);
 
   return sentences.length ? sentences : defaultAdvice;
+}
+
+function buildRecordDetails(record) {
+  if (!record) return [];
+
+  return [
+    { label: "Dokter", value: record.dokter_nama || "-" },
+    { label: "Tanggal", value: formatDate(record.tanggal_periksa) },
+    { label: "Diagnosis", value: record.diagnosa || "-" }
+  ];
 }
 
 function addDays(value, days) {

@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState, LoadingState } from "../../components/States";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
@@ -47,6 +48,9 @@ export default function PatientAppointments() {
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
   async function loadBookings() {
     setLoading(true);
@@ -90,20 +94,26 @@ export default function PatientAppointments() {
   );
 
   function handleLogout() {
+    setConfirmLogoutOpen(true);
+  }
+
+  function confirmLogout() {
     logout();
     navigate("/login");
   }
 
-  async function cancelBooking(id) {
-    const confirmed = window.confirm("Batalkan appointment ini?");
-    if (!confirmed) return;
-
+  async function confirmCancelBooking() {
+    if (!bookingToCancel) return;
+    setCancelling(true);
     try {
-      await api.put(`/booking/${id}/cancel`);
+      await api.put(`/booking/${bookingToCancel.id}/cancel`);
       toast.success("Booking berhasil dibatalkan");
+      setBookingToCancel(null);
       await loadBookings();
     } catch (error) {
       toast.error(error.message || "Gagal membatalkan booking");
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -149,7 +159,7 @@ export default function PatientAppointments() {
                   {filteredBookings.length ? (
                     <div className="mt-5 grid gap-4">
                       {filteredBookings.map((booking) => (
-                        <AppointmentCard key={booking.id} booking={booking} onCancel={cancelBooking} />
+                        <AppointmentCard key={booking.id} booking={booking} onCancel={setBookingToCancel} />
                       ))}
                     </div>
                   ) : (
@@ -174,6 +184,39 @@ export default function PatientAppointments() {
       </main>
 
       <Footer />
+
+      {confirmLogoutOpen ? (
+        <ConfirmDialog
+          title="Keluar dari akun?"
+          description="Sesi Anda akan ditutup. Anda perlu login kembali untuk melihat janji temu dan rekam medis."
+          confirmLabel="Ya, keluar"
+          cancelLabel="Tetap di halaman"
+          tone="warning"
+          onConfirm={confirmLogout}
+          onCancel={() => setConfirmLogoutOpen(false)}
+        />
+      ) : null}
+
+      {bookingToCancel ? (
+        <ConfirmDialog
+          title="Batalkan janji temu?"
+          description="Tindakan ini akan mengubah status janji temu menjadi batal. Pastikan jadwal yang dipilih benar sebelum melanjutkan."
+          details={[
+            { label: "Dokter", value: bookingToCancel.dokter_nama },
+            {
+              label: "Jadwal",
+              value: `${formatDate(bookingToCancel.tanggal_kunjungan)} pukul ${formatTime(bookingToCancel.jam_slot)}`
+            },
+            { label: "Nomor antrean", value: `#${bookingToCancel.nomor_antrean}` }
+          ]}
+          confirmLabel="Ya, batalkan"
+          cancelLabel="Tidak, kembali"
+          tone="danger"
+          loading={cancelling}
+          onConfirm={confirmCancelBooking}
+          onCancel={() => setBookingToCancel(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -390,7 +433,7 @@ function AppointmentCard({ booking, onCancel }) {
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row md:flex-col">
           <button
             type="button"
-            onClick={() => onCancel(booking.id)}
+            onClick={() => onCancel(booking)}
             disabled={!canCancel}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
           >

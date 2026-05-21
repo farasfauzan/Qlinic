@@ -18,6 +18,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState, LoadingState } from "../../components/States";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
@@ -37,6 +38,7 @@ export default function PatientDashboard() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -74,6 +76,10 @@ export default function PatientDashboard() {
   );
 
   function handleLogout() {
+    setConfirmLogoutOpen(true);
+  }
+
+  function confirmLogout() {
     logout();
     navigate("/login");
   }
@@ -114,6 +120,18 @@ export default function PatientDashboard() {
       </main>
 
       <Footer />
+
+      {confirmLogoutOpen ? (
+        <ConfirmDialog
+          title="Keluar dari akun?"
+          description="Sesi Anda akan ditutup. Anda perlu login kembali untuk melihat janji temu dan rekam medis."
+          confirmLabel="Ya, keluar"
+          cancelLabel="Tetap di halaman"
+          tone="warning"
+          onConfirm={confirmLogout}
+          onCancel={() => setConfirmLogoutOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

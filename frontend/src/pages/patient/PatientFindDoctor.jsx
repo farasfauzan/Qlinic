@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Modal } from "../../components/Modal";
 import { EmptyState, LoadingState } from "../../components/States";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -53,6 +54,7 @@ export default function PatientFindDoctor() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -99,6 +101,10 @@ export default function PatientFindDoctor() {
   }, [availability, enrichedDoctors, minRating, search, selectedPoli, sortBy]);
 
   function handleLogout() {
+    setConfirmLogoutOpen(true);
+  }
+
+  function confirmLogout() {
     logout();
     navigate("/login");
   }
@@ -187,6 +193,18 @@ export default function PatientFindDoctor() {
 
       {selectedDoctor ? (
         <BookingModal doctor={selectedDoctor} onClose={() => setSelectedDoctor(null)} />
+      ) : null}
+
+      {confirmLogoutOpen ? (
+        <ConfirmDialog
+          title="Keluar dari akun?"
+          description="Sesi Anda akan ditutup. Anda perlu login kembali untuk melihat janji temu dan rekam medis."
+          confirmLabel="Ya, keluar"
+          cancelLabel="Tetap di halaman"
+          tone="warning"
+          onConfirm={confirmLogout}
+          onCancel={() => setConfirmLogoutOpen(false)}
+        />
       ) : null}
     </div>
   );
@@ -471,9 +489,9 @@ function BookingModal({ doctor, onClose }) {
   const [jamSlot, setJamSlot] = useState(availableSlots.find((slot) => !disabledSlots.has(slot)) || timeSlots[0]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [confirmBookingOpen, setConfirmBookingOpen] = useState(false);
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function confirmBooking() {
     setLoading(true);
     try {
       const response = await api.post("/booking", {
@@ -482,12 +500,18 @@ function BookingModal({ doctor, onClose }) {
         jam_slot: jamSlot
       });
       setResult(response.data);
+      setConfirmBookingOpen(false);
       toast.success("Booking berhasil dibuat");
     } catch (error) {
       toast.error(error.message || "Booking gagal");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    setConfirmBookingOpen(true);
   }
 
   return (
@@ -620,6 +644,24 @@ function BookingModal({ doctor, onClose }) {
           </div>
         </form>
       )}
+
+      {confirmBookingOpen ? (
+        <ConfirmDialog
+          title="Konfirmasi jadwal janji temu?"
+          description="Periksa kembali dokter, tanggal, dan jam. Setelah dikonfirmasi, nomor antrean akan dibuat untuk jadwal ini."
+          details={[
+            { label: "Dokter", value: doctor.nama },
+            { label: "Poliklinik", value: doctor.nama_poli || "Qlinic Pusat" },
+            { label: "Jadwal", value: `${formatDate(tanggal)} pukul ${jamSlot}` }
+          ]}
+          confirmLabel="Ya, buat janji"
+          cancelLabel="Periksa lagi"
+          tone="info"
+          loading={loading}
+          onConfirm={confirmBooking}
+          onCancel={() => setConfirmBookingOpen(false)}
+        />
+      ) : null}
     </Modal>
   );
 }
