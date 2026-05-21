@@ -1,5 +1,4 @@
 import {
-  Bell,
   CalendarDays,
   CheckCircle2,
   ClipboardCheck,
@@ -12,10 +11,7 @@ import {
   Pill,
   Printer,
   Search,
-  Send,
-  Settings,
   Stethoscope,
-  UserRound,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -28,9 +24,9 @@ import { formatDate, formatTime } from "../../utils";
 
 const navItems = [
   { label: "Dashboard", path: "/patient/dashboard" },
-  { label: "Find Doctors", path: "/patient/find-doctor" },
-  { label: "Appointments", path: "/patient/appointments" },
-  { label: "My Records", path: "/patient/medical-records" }
+  { label: "Cari Dokter", path: "/patient/find-doctor" },
+  { label: "Janji Temu", path: "/patient/appointments" },
+  { label: "Rekam Medis", path: "/patient/medical-records" }
 ];
 
 const defaultAdvice = [
@@ -166,7 +162,7 @@ export default function PatientMedicalRecords() {
                 shown={filteredRecords.length}
               />
 
-              <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+              <div className="content-stagger grid gap-6 lg:grid-cols-[320px_1fr]">
                 <RecordsPanel
                   records={filteredRecords}
                   total={records.length}
@@ -225,22 +221,15 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            to="/patient/find-doctor"
-            className="rounded-md bg-[#073e69] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#052f50]"
-          >
-            Buat Janji
-          </Link>
-          <IconButton label="Notifikasi" icon={Bell} />
-          <IconButton label="Pengaturan" icon={Settings} />
           <button
             type="button"
             onClick={onLogout}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-50 text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
-            aria-label={`Logout ${user?.nama || "pasien"}`}
-            title="Logout"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-sky-50 px-3 text-sm font-semibold text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
+            aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
+            title="Keluar"
           >
-            <UserRound className="h-5 w-5" />
+            <LogOut className="h-4 w-4" />
+            <span className="hidden lg:inline">Keluar</span>
           </button>
         </div>
 
@@ -272,21 +261,15 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
               </NavLink>
             ))}
           </nav>
-          <div className="mt-4 grid grid-cols-[1fr_auto] gap-3">
-            <Link
-              to="/patient/find-doctor"
-              onClick={onCloseMenu}
-              className="rounded-md bg-[#073e69] px-4 py-2.5 text-center text-sm font-bold text-white"
-            >
-              Buat Janji
-            </Link>
+          <div className="mt-4 border-t border-slate-100 pt-4">
             <button
               type="button"
               onClick={onLogout}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600"
-              aria-label="Logout"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+              aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
             >
               <LogOut className="h-4 w-4" />
+              Keluar
             </button>
           </div>
         </div>
@@ -297,7 +280,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
 
 function PageHeader({ total, onDownload }) {
   return (
-    <section className="bg-[#0a4778] text-white">
+    <section className="page-enter bg-[#0a4778] text-white">
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-10">
         <div>
           <h1 className="text-3xl font-bold tracking-normal">Rekam Medis Saya</h1>
@@ -308,7 +291,7 @@ function PageHeader({ total, onDownload }) {
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-semibold text-sky-50 ring-1 ring-white/15">
             <FileText className="h-4 w-4" />
-            {total} records
+            {total} rekam medis
           </div>
           <button
             type="button"
@@ -326,7 +309,7 @@ function PageHeader({ total, onDownload }) {
 
 function RecordsToolbar({ search, onSearch, total, shown }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <section className="surface-lift rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
         <label className="relative block">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -338,7 +321,7 @@ function RecordsToolbar({ search, onSearch, total, shown }) {
           />
         </label>
         <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-          {shown} dari {total} records
+          {shown} dari {total} rekam medis
         </div>
       </div>
     </section>
@@ -347,11 +330,11 @@ function RecordsToolbar({ search, onSearch, total, shown }) {
 
 function RecordsPanel({ records, total, selectedId, onSelect }) {
   return (
-    <aside className="h-fit rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <aside className="surface-lift h-fit rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-[#12385d]">Riwayat konsultasi</h2>
         <p className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-[#0a4778]">
-          {total} records
+          {total} rekam medis
         </p>
       </div>
 
@@ -380,7 +363,7 @@ function RecordListItem({ record, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-xl border p-4 text-left transition ${
+      className={`surface-lift w-full rounded-xl border p-4 text-left ${
         active
           ? "border-[#0a4778] bg-sky-50 shadow-sm ring-1 ring-[#0a4778]"
           : "border-slate-200 bg-white hover:border-sky-200 hover:bg-slate-50"
@@ -419,7 +402,7 @@ function RecordDetail({ record, onPrint, onShare }) {
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+    <section className="surface-lift overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
       <RecordHero record={record} onPrint={onPrint} onShare={onShare} />
 
       <div className="grid gap-5 p-4 sm:p-5">
@@ -470,8 +453,8 @@ function RecordHero({ record, onPrint, onShare }) {
             onClick={onShare}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/15"
           >
-            <Send className="h-4 w-4" />
-            Bagikan ke Dokter
+            <ClipboardCheck className="h-4 w-4" />
+            Salin Ringkasan
           </button>
         </div>
       </div>
@@ -572,19 +555,6 @@ function HeroPill({ icon: Icon, label }) {
       <Icon className="h-4 w-4" />
       {label}
     </span>
-  );
-}
-
-function IconButton({ label, icon: Icon }) {
-  return (
-    <button
-      type="button"
-      className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#0a4778]"
-      aria-label={label}
-      title={label}
-    >
-      <Icon className="h-5 w-5" />
-    </button>
   );
 }
 

@@ -1,5 +1,4 @@
 import {
-  Bell,
   CalendarDays,
   ChevronRight,
   Clock3,
@@ -13,9 +12,7 @@ import {
   Phone,
   Pill,
   Search,
-  Settings,
   Stethoscope,
-  UserRound,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -28,9 +25,9 @@ import { formatDate, formatTime } from "../../utils";
 
 const navItems = [
   { label: "Dashboard", path: "/patient/dashboard" },
-  { label: "Find Doctors", path: "/patient/find-doctor" },
-  { label: "Appointments", path: "/patient/appointments" },
-  { label: "My Records", path: "/patient/medical-records" }
+  { label: "Cari Dokter", path: "/patient/find-doctor" },
+  { label: "Janji Temu", path: "/patient/appointments" },
+  { label: "Rekam Medis", path: "/patient/medical-records" }
 ];
 
 export default function PatientDashboard() {
@@ -101,12 +98,12 @@ export default function PatientDashboard() {
         ) : (
           <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
             <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-              <div className="space-y-6">
+              <div className="content-stagger space-y-6">
                 <UpcomingAppointmentCard upcoming={upcoming} />
                 <LatestRecordCard record={latestRecord} />
               </div>
 
-              <aside className="space-y-6">
+              <aside className="content-stagger space-y-6">
                 <ClinicInfoCard />
                 <TipCard />
                 <MapPreview />
@@ -149,22 +146,15 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            to="/patient/find-doctor"
-            className="rounded-md bg-[#073e69] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#052f50]"
-          >
-            Buat Janji
-          </Link>
-          <IconButton label="Notifikasi" icon={Bell} />
-          <IconButton label="Pengaturan" icon={Settings} />
           <button
             type="button"
             onClick={onLogout}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-50 text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
-            aria-label={`Logout ${user?.nama || "pasien"}`}
-            title="Logout"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-sky-50 px-3 text-sm font-semibold text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
+            aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
+            title="Keluar"
           >
-            <UserRound className="h-5 w-5" />
+            <LogOut className="h-4 w-4" />
+            <span className="hidden lg:inline">Keluar</span>
           </button>
         </div>
 
@@ -196,21 +186,15 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
               </NavLink>
             ))}
           </nav>
-          <div className="mt-4 grid grid-cols-[1fr_auto] gap-3">
-            <Link
-              to="/patient/find-doctor"
-              onClick={onCloseMenu}
-              className="rounded-md bg-[#073e69] px-4 py-2.5 text-center text-sm font-bold text-white"
-            >
-              Buat Janji
-            </Link>
+          <div className="mt-4 border-t border-slate-100 pt-4">
             <button
               type="button"
               onClick={onLogout}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600"
-              aria-label="Logout"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+              aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
             >
               <LogOut className="h-4 w-4" />
+              Keluar
             </button>
           </div>
         </div>
@@ -221,7 +205,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
 
 function HeroBanner({ userName }) {
   return (
-    <section className="bg-[#0a4778] text-white">
+    <section className="page-enter bg-[#0a4778] text-white">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-9 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-10">
         <div>
           <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">
@@ -255,7 +239,7 @@ function HeroBanner({ userName }) {
 
 function UpcomingAppointmentCard({ upcoming }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="surface-lift rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <SectionHeader
         icon={CalendarDays}
         title="Janji temu mendatang"
@@ -293,6 +277,15 @@ function UpcomingAppointmentCard({ upcoming }) {
             title="Belum ada janji aktif"
             description="Cari dokter dan buat appointment sesuai jadwal praktik."
           />
+          <div className="mt-4 flex justify-center">
+            <Link
+              to="/patient/find-doctor"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#073e69] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#052f50]"
+            >
+              <Search className="h-4 w-4" />
+              Cari Dokter
+            </Link>
+          </div>
         </div>
       )}
     </section>
@@ -303,7 +296,7 @@ function LatestRecordCard({ record }) {
   const prescriptions = record?.resep_obat?.length || 0;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="surface-lift rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <SectionHeader
         icon={FileText}
         title="Rekam medis terakhir"
@@ -347,22 +340,9 @@ function LatestRecordCard({ record }) {
   );
 }
 
-function QuickActions() {
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-[#12385d]">Aksi cepat</h2>
-      <div className="mt-4 grid gap-3">
-        <QuickAction icon={Search} label="Cari dokter" to="/patient/find-doctor" />
-        <QuickAction icon={CalendarDays} label="Kelola appointment" to="/patient/appointments" />
-        <QuickAction icon={FileText} label="Lihat rekam medis" to="/patient/medical-records" />
-      </div>
-    </section>
-  );
-}
-
 function ClinicInfoCard() {
   return (
-    <section className="rounded-xl bg-[#073e69] p-5 text-white shadow-sm">
+    <section className="surface-lift rounded-xl bg-[#073e69] p-5 text-white shadow-sm">
       <h2 className="text-base font-semibold">Info klinik</h2>
       <div className="mt-4 space-y-4">
         <InfoRow icon={MapPin} label="Alamat" value="Jl. Sudirman No. 45, Jakarta Selatan" />
@@ -375,7 +355,7 @@ function ClinicInfoCard() {
 
 function TipCard() {
   return (
-    <section className="rounded-xl border border-orange-100 bg-[#fff8f3] p-5 text-[#7a4b2c] shadow-sm">
+    <section className="surface-lift rounded-xl border border-orange-100 bg-[#fff8f3] p-5 text-[#7a4b2c] shadow-sm">
       <h2 className="flex items-center gap-2 text-base font-semibold">
         <HelpCircle className="h-5 w-5" />
         Tips sehat hari ini
@@ -389,7 +369,7 @@ function TipCard() {
 
 function MapPreview() {
   return (
-    <section className="relative min-h-44 overflow-hidden rounded-xl bg-[#1b7a89] shadow-sm">
+    <section className="surface-lift relative min-h-44 overflow-hidden rounded-xl bg-[#1b7a89] shadow-sm">
       <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.18)_25%,transparent_25%),linear-gradient(225deg,rgba(255,255,255,0.18)_25%,transparent_25%),linear-gradient(45deg,rgba(255,255,255,0.18)_25%,transparent_25%),linear-gradient(315deg,rgba(255,255,255,0.18)_25%,#1b7a89_25%)] bg-[length:54px_54px] bg-[position:27px_0,27px_0,0_0,0_0]" />
       <div className="absolute inset-x-0 top-1/2 h-7 -rotate-12 bg-white/70" />
       <div className="absolute bottom-4 left-5 h-14 w-24 rotate-[-12deg] rounded-lg bg-emerald-200/70" />
@@ -423,39 +403,11 @@ function SectionHeader({ icon: Icon, title, actionLabel, actionTo }) {
   );
 }
 
-function QuickAction({ icon: Icon, label, to }) {
-  return (
-    <Link
-      to={to}
-      className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-3 text-sm font-semibold text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-[#0a4778]"
-    >
-      <span className="flex items-center gap-3">
-        <Icon className="h-4 w-4" />
-        {label}
-      </span>
-      <ChevronRight className="h-4 w-4" />
-    </Link>
-  );
-}
-
 function DoctorAvatar() {
   return (
     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#0a4778] ring-1 ring-sky-100">
       <Stethoscope className="h-7 w-7" />
     </div>
-  );
-}
-
-function IconButton({ label, icon: Icon }) {
-  return (
-    <button
-      type="button"
-      className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#0a4778]"
-      aria-label={label}
-      title={label}
-    >
-      <Icon className="h-5 w-5" />
-    </button>
   );
 }
 

@@ -1,5 +1,4 @@
 import {
-  Bell,
   CalendarCheck,
   CalendarDays,
   CalendarPlus,
@@ -14,10 +13,8 @@ import {
   Navigation,
   RefreshCcw,
   Search,
-  Settings,
   ShieldCheck,
   Stethoscope,
-  UserRound,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -31,9 +28,9 @@ import { formatDate, formatTime } from "../../utils";
 
 const navItems = [
   { label: "Dashboard", path: "/patient/dashboard" },
-  { label: "Find Doctors", path: "/patient/find-doctor" },
-  { label: "Appointments", path: "/patient/appointments" },
-  { label: "My Records", path: "/patient/medical-records" }
+  { label: "Cari Dokter", path: "/patient/find-doctor" },
+  { label: "Janji Temu", path: "/patient/appointments" },
+  { label: "Rekam Medis", path: "/patient/medical-records" }
 ];
 
 const statusTabs = [
@@ -128,7 +125,7 @@ export default function PatientAppointments() {
             <LoadingState />
           ) : (
             <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-              <div className="min-w-0 space-y-6">
+              <div className="content-stagger min-w-0 space-y-6">
                 <NextAppointmentCard appointment={nextAppointment} />
 
                 <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -166,7 +163,7 @@ export default function PatientAppointments() {
                 </section>
               </div>
 
-              <aside className="space-y-6">
+              <aside className="content-stagger space-y-6">
                 <SummaryCard counts={counts} />
                 <PreparationCard />
                 <ClinicDirectionsCard />
@@ -209,22 +206,15 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            to="/patient/find-doctor"
-            className="rounded-md bg-[#073e69] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#052f50]"
-          >
-            Buat Janji
-          </Link>
-          <IconButton label="Notifikasi" icon={Bell} />
-          <IconButton label="Pengaturan" icon={Settings} />
           <button
             type="button"
             onClick={onLogout}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-50 text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
-            aria-label={`Logout ${user?.nama || "pasien"}`}
-            title="Logout"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-sky-50 px-3 text-sm font-semibold text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
+            aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
+            title="Keluar"
           >
-            <UserRound className="h-5 w-5" />
+            <LogOut className="h-4 w-4" />
+            <span className="hidden lg:inline">Keluar</span>
           </button>
         </div>
 
@@ -256,21 +246,15 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
               </NavLink>
             ))}
           </nav>
-          <div className="mt-4 grid grid-cols-[1fr_auto] gap-3">
-            <Link
-              to="/patient/find-doctor"
-              onClick={onCloseMenu}
-              className="rounded-md bg-[#073e69] px-4 py-2.5 text-center text-sm font-bold text-white"
-            >
-              Buat Janji
-            </Link>
+          <div className="mt-4 border-t border-slate-100 pt-4">
             <button
               type="button"
               onClick={onLogout}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600"
-              aria-label="Logout"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+              aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
             >
               <LogOut className="h-4 w-4" />
+              Keluar
             </button>
           </div>
         </div>
@@ -281,7 +265,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
 
 function PageHeader({ total, active }) {
   return (
-    <section className="bg-[#0a4778] text-white">
+    <section className="page-enter bg-[#0a4778] text-white">
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-10">
         <div>
           <h1 className="text-3xl font-bold tracking-normal">Appointment</h1>
@@ -307,7 +291,7 @@ function PageHeader({ total, active }) {
 
 function NextAppointmentCard({ appointment }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="surface-lift rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1.5 text-sm font-semibold text-[#0a4778]">
@@ -382,7 +366,7 @@ function AppointmentCard({ booking, onCancel }) {
   const canCancel = booking.status_booking === "Pending";
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-card">
+    <article className="surface-lift rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-sky-200 hover:shadow-card">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="flex min-w-0 gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-[#0a4778] ring-1 ring-sky-100">
@@ -404,13 +388,6 @@ function AppointmentCard({ booking, onCancel }) {
         </div>
 
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row md:flex-col">
-          <Link
-            to="/patient/find-doctor"
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-[#0a4778] transition hover:bg-sky-50"
-          >
-            <CalendarPlus className="h-4 w-4" />
-            Pilih Jadwal
-          </Link>
           <button
             type="button"
             onClick={() => onCancel(booking.id)}
@@ -428,7 +405,7 @@ function AppointmentCard({ booking, onCancel }) {
 
 function SummaryCard({ counts }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="surface-lift rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-base font-semibold text-[#12385d]">Ringkasan</h2>
       <div className="mt-4 grid gap-3">
         <SummaryRow icon={CalendarCheck} label="Aktif" value={counts.Pending} tone="sky" />
@@ -441,7 +418,7 @@ function SummaryCard({ counts }) {
 
 function PreparationCard() {
   return (
-    <section className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-5 text-emerald-900 shadow-sm">
+    <section className="surface-lift rounded-xl border border-emerald-100 bg-emerald-50/70 p-5 text-emerald-900 shadow-sm">
       <h2 className="flex items-center gap-2 text-base font-semibold">
         <Info className="h-5 w-5" />
         Sebelum datang
@@ -457,7 +434,7 @@ function PreparationCard() {
 
 function ClinicDirectionsCard() {
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <section className="surface-lift overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="p-5">
         <h2 className="text-base font-semibold text-[#12385d]">Lokasi klinik</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">Jl. Sudirman No. 45, Jakarta Selatan</p>
@@ -540,19 +517,6 @@ function ChecklistItem({ text }) {
       <CheckCircle2 className="h-4 w-4 shrink-0" />
       {text}
     </p>
-  );
-}
-
-function IconButton({ label, icon: Icon }) {
-  return (
-    <button
-      type="button"
-      className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#0a4778]"
-      aria-label={label}
-      title={label}
-    >
-      <Icon className="h-5 w-5" />
-    </button>
   );
 }
 

@@ -34,6 +34,11 @@ textarea {
   color: #0b1f3a;
 }
 
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid rgba(29, 155, 240, 0.38);
+  outline-offset: 3px;
+}
+
 .app-card {
   border: 1px solid rgba(226, 232, 240, 0.9);
   background: rgba(255, 255, 255, 0.94);
@@ -66,4 +71,71 @@ textarea {
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(14px);
+}
+
+@keyframes page-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-fade-up 360ms ease-out both;
+}
+
+.content-stagger > * {
+  animation: soft-reveal 320ms ease-out both;
+}
+
+.content-stagger > *:nth-child(2) {
+  animation-delay: 55ms;
+}
+
+.content-stagger > *:nth-child(3) {
+  animation-delay: 110ms;
+}
+
+.surface-lift {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease,
+    background-color 180ms ease;
+}
+
+.surface-lift:hover {
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .content-stagger > * {
+    animation: none;
+  }
+
+  .surface-lift {
+    transition: none;
+  }
+
+  .surface-lift:hover {
+    transform: none;
+  }
 }

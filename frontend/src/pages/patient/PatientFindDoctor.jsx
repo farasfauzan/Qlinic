@@ -1,5 +1,4 @@
 import {
-  Bell,
   CalendarDays,
   CalendarPlus,
   Check,
@@ -11,11 +10,9 @@ import {
   MapPin,
   Menu,
   Search,
-  Settings,
   SlidersHorizontal,
   Star,
   Stethoscope,
-  UserRound,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -30,12 +27,12 @@ import { formatDate, formatTime, timeSlots } from "../../utils";
 
 const navItems = [
   { label: "Dashboard", path: "/patient/dashboard" },
-  { label: "Find Doctors", path: "/patient/find-doctor" },
-  { label: "Appointments", path: "/patient/appointments" },
-  { label: "My Records", path: "/patient/medical-records" }
+  { label: "Cari Dokter", path: "/patient/find-doctor" },
+  { label: "Janji Temu", path: "/patient/appointments" },
+  { label: "Rekam Medis", path: "/patient/medical-records" }
 ];
 
-const availabilityOptions = ["Hari Ini", "Besok", "Minggu Ini"];
+const availabilityOptions = ["Semua", "Hari Ini", "Besok", "Minggu Ini"];
 const sortOptions = [
   { label: "Direkomendasikan", value: "recommended" },
   { label: "Rating tertinggi", value: "rating" },
@@ -50,7 +47,7 @@ export default function PatientFindDoctor() {
   const [polyclinics, setPolyclinics] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedPoli, setSelectedPoli] = useState("");
-  const [availability, setAvailability] = useState("Hari Ini");
+  const [availability, setAvailability] = useState("Semua");
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState("recommended");
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -86,7 +83,12 @@ export default function PatientFindDoctor() {
         const matchesSearch = keyword.includes(search.toLowerCase());
         const matchesPoli = selectedPoli ? String(doctor.id_poli) === selectedPoli : true;
         const matchesRating = doctor.ui.rating >= minRating;
-        return matchesSearch && matchesPoli && matchesRating;
+        const schedule = (doctor.ui.nextSchedule || "").toLowerCase();
+        const matchesAvailability =
+          availability === "Semua" ||
+          availability === "Minggu Ini" ||
+          schedule.includes(availability.toLowerCase());
+        return matchesSearch && matchesPoli && matchesRating && matchesAvailability;
       })
       .sort((a, b) => {
         if (sortBy === "rating") return b.ui.rating - a.ui.rating;
@@ -94,7 +96,7 @@ export default function PatientFindDoctor() {
         if (sortBy === "name") return a.nama.localeCompare(b.nama);
         return b.ui.score - a.ui.score;
       });
-  }, [enrichedDoctors, minRating, search, selectedPoli, sortBy]);
+  }, [availability, enrichedDoctors, minRating, search, selectedPoli, sortBy]);
 
   function handleLogout() {
     logout();
@@ -161,7 +163,7 @@ export default function PatientFindDoctor() {
               {loading ? (
                 <LoadingState />
               ) : filteredDoctors.length ? (
-                <div className="grid gap-4 xl:grid-cols-2">
+                <div className="content-stagger grid gap-4 xl:grid-cols-2">
                   {filteredDoctors.map((doctor, index) => (
                     <DoctorCard
                       key={doctor.id}
@@ -218,22 +220,15 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            to="/patient/find-doctor"
-            className="rounded-md bg-[#073e69] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#052f50]"
-          >
-            Buat Janji
-          </Link>
-          <IconButton label="Notifikasi" icon={Bell} />
-          <IconButton label="Pengaturan" icon={Settings} />
           <button
             type="button"
             onClick={onLogout}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-50 text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
-            aria-label={`Logout ${user?.nama || "pasien"}`}
-            title="Logout"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-sky-50 px-3 text-sm font-semibold text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
+            aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
+            title="Keluar"
           >
-            <UserRound className="h-5 w-5" />
+            <LogOut className="h-4 w-4" />
+            <span className="hidden lg:inline">Keluar</span>
           </button>
         </div>
 
@@ -265,21 +260,15 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
               </NavLink>
             ))}
           </nav>
-          <div className="mt-4 grid grid-cols-[1fr_auto] gap-3">
-            <Link
-              to="/patient/find-doctor"
-              onClick={onCloseMenu}
-              className="rounded-md bg-[#073e69] px-4 py-2.5 text-center text-sm font-bold text-white"
-            >
-              Buat Janji
-            </Link>
+          <div className="mt-4 border-t border-slate-100 pt-4">
             <button
               type="button"
               onClick={onLogout}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600"
-              aria-label="Logout"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+              aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
             >
               <LogOut className="h-4 w-4" />
+              Keluar
             </button>
           </div>
         </div>
@@ -290,7 +279,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
 
 function PageHeader({ total }) {
   return (
-    <section className="bg-[#0a4778] text-white">
+    <section className="page-enter bg-[#0a4778] text-white">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:px-6 sm:flex-row sm:items-end sm:justify-between lg:px-10">
         <div>
           <h1 className="text-3xl font-bold tracking-normal">
@@ -310,8 +299,8 @@ function PageHeader({ total }) {
 
 function SearchToolbar({ search, setSearch, selectedPoli, setSelectedPoli, polyclinics }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="grid gap-3 lg:grid-cols-[1fr_260px_auto]">
+    <section className="surface-lift rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="grid gap-3 lg:grid-cols-[1fr_260px]">
         <label className="relative block">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input
@@ -339,13 +328,6 @@ function SearchToolbar({ search, setSearch, selectedPoli, setSelectedPoli, polyc
           <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         </label>
 
-        <button
-          type="button"
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#073e69] px-6 text-sm font-semibold text-white transition hover:bg-[#052f50]"
-        >
-          <Search className="h-4 w-4" />
-          Cari
-        </button>
       </div>
     </section>
   );
@@ -361,7 +343,7 @@ function FilterPanel({
   setMinRating
 }) {
   return (
-    <aside className="h-fit rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <aside className="surface-lift h-fit rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-5 flex items-center justify-between">
         <h2 className="inline-flex items-center gap-2 text-base font-semibold text-[#12385d]">
           <SlidersHorizontal className="h-5 w-5 text-[#0a4778]" />
@@ -372,7 +354,7 @@ function FilterPanel({
           onClick={() => {
             setSelectedPoli("");
             setMinRating(0);
-            setAvailability("Hari Ini");
+            setAvailability("Semua");
           }}
           className="text-sm font-semibold text-[#0a4778] hover:text-[#052f50]"
         >
@@ -428,7 +410,7 @@ function FilterPanel({
 
 function DoctorCard({ doctor, variant, onBook }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sky-200 hover:shadow-card">
+    <article className="surface-lift rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-sky-200 hover:shadow-card">
       <div className="flex flex-col gap-4 sm:flex-row">
         <DoctorAvatar variant={variant} />
 
@@ -467,12 +449,6 @@ function DoctorCard({ doctor, variant, onBook }) {
           <p className="mt-1 text-sm font-semibold text-[#12385d]">{doctor.ui.nextSchedule}</p>
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-[#0a4778] transition hover:bg-sky-50"
-          >
-            Profil
-          </button>
           <button
             type="button"
             onClick={onBook}
@@ -707,19 +683,6 @@ function DoctorAvatar({ variant }) {
     <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-xl ${tones[variant % tones.length]}`}>
       <Stethoscope className="h-8 w-8" />
     </div>
-  );
-}
-
-function IconButton({ label, icon: Icon }) {
-  return (
-    <button
-      type="button"
-      className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#0a4778]"
-      aria-label={label}
-      title={label}
-    >
-      <Icon className="h-5 w-5" />
-    </button>
   );
 }
 
