@@ -1,19 +1,58 @@
-import { CalendarPlus, Filter, Search, Star, Stethoscope } from "lucide-react";
+import {
+  Bell,
+  CalendarPlus,
+  Check,
+  ChevronDown,
+  Clock3,
+  HeartPulse,
+  LogOut,
+  MapPin,
+  Menu,
+  Search,
+  Settings,
+  SlidersHorizontal,
+  Star,
+  Stethoscope,
+  UserRound,
+  X
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { Modal } from "../../components/Modal";
 import { EmptyState, LoadingState } from "../../components/States";
 import { StatusBadge } from "../../components/StatusBadge";
-import { DashboardLayout } from "../../layouts/DashboardLayout";
+import { useAuth } from "../../context/AuthContext";
 import { formatDate, formatTime, timeSlots, toInputDate } from "../../utils";
 
+const navItems = [
+  { label: "Dashboard", path: "/patient/dashboard" },
+  { label: "Find Doctors", path: "/patient/find-doctor" },
+  { label: "Appointments", path: "/patient/appointments" },
+  { label: "My Records", path: "/patient/medical-records" }
+];
+
+const availabilityOptions = ["Hari Ini", "Besok", "Minggu Ini"];
+const sortOptions = [
+  { label: "Direkomendasikan", value: "recommended" },
+  { label: "Rating tertinggi", value: "rating" },
+  { label: "Pengalaman", value: "experience" },
+  { label: "Nama A-Z", value: "name" }
+];
+
 export default function PatientFindDoctor() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [doctors, setDoctors] = useState([]);
   const [polyclinics, setPolyclinics] = useState([]);
   const [search, setSearch] = useState("");
-  const [poli, setPoli] = useState("");
+  const [selectedPoli, setSelectedPoli] = useState("");
+  const [availability, setAvailability] = useState("Hari Ini");
+  const [minRating, setMinRating] = useState(0);
+  const [sortBy, setSortBy] = useState("recommended");
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,96 +72,416 @@ export default function PatientFindDoctor() {
     loadData();
   }, []);
 
+  const enrichedDoctors = useMemo(
+    () => doctors.map((doctor, index) => ({ ...doctor, ui: doctorUiMeta(index, doctor) })),
+    [doctors]
+  );
+
   const filteredDoctors = useMemo(() => {
-    return doctors.filter((doctor) => {
-      const keyword = `${doctor.nama} ${doctor.spesialisasi}`.toLowerCase();
-      const matchesSearch = keyword.includes(search.toLowerCase());
-      const matchesPoli = poli ? String(doctor.id_poli) === poli : true;
-      return matchesSearch && matchesPoli;
-    });
-  }, [doctors, search, poli]);
+    return enrichedDoctors
+      .filter((doctor) => {
+        const keyword = `${doctor.nama} ${doctor.spesialisasi} ${doctor.nama_poli || ""}`.toLowerCase();
+        const matchesSearch = keyword.includes(search.toLowerCase());
+        const matchesPoli = selectedPoli ? String(doctor.id_poli) === selectedPoli : true;
+        const matchesRating = doctor.ui.rating >= minRating;
+        return matchesSearch && matchesPoli && matchesRating;
+      })
+      .sort((a, b) => {
+        if (sortBy === "rating") return b.ui.rating - a.ui.rating;
+        if (sortBy === "experience") return b.ui.experience - a.ui.experience;
+        if (sortBy === "name") return a.nama.localeCompare(b.nama);
+        return b.ui.score - a.ui.score;
+      });
+  }, [enrichedDoctors, minRating, search, selectedPoli, sortBy]);
+
+  function handleLogout() {
+    logout();
+    navigate("/login");
+  }
 
   return (
-    <DashboardLayout title="Find Doctors" subtitle="Cari dokter berdasarkan nama, spesialisasi, atau poliklinik.">
-      {loading ? (
-        <LoadingState />
-      ) : (
-        <div className="space-y-5">
-          <div className="grid gap-3 app-card rounded-2xl p-4 md:grid-cols-[1fr_260px]">
-            <label className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 py-3 pl-11 pr-4 outline-none focus:border-clinical focus:ring-2 focus:ring-sky-100"
-                placeholder="Cari nama dokter atau spesialisasi"
-              />
-            </label>
-            <label className="relative block">
-              <Filter className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <select
-                value={poli}
-                onChange={(event) => setPoli(event.target.value)}
-                className="w-full appearance-none rounded-lg border border-slate-300 py-3 pl-11 pr-4 outline-none focus:border-clinical focus:ring-2 focus:ring-sky-100"
-              >
-                <option value="">Semua Poliklinik</option>
-                {polyclinics.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.nama_poli}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+    <div className="min-h-screen bg-[#f4f7fd] text-[#12385d]">
+      <PatientTopNav
+        user={user}
+        open={mobileMenuOpen}
+        onToggleMenu={() => setMobileMenuOpen((value) => !value)}
+        onCloseMenu={() => setMobileMenuOpen(false)}
+        onLogout={handleLogout}
+      />
 
-          {filteredDoctors.length ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filteredDoctors.map((doctor, index) => (
-                <article key={doctor.id} className="app-card rounded-2xl p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-clinical">
-                        <Stethoscope className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="font-bold text-navy">{doctor.nama}</h2>
-                        <p className="text-sm text-slate-500">{doctor.spesialisasi}</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
-                      <Star className="h-3.5 w-3.5 fill-current" />
-                      {(4.7 + (index % 3) / 10).toFixed(1)}
-                    </span>
-                  </div>
-                  <div className="mt-4 space-y-2 text-sm text-slate-600">
-                    <p>
-                      <span className="font-medium text-navy">Poliklinik:</span> {doctor.nama_poli || "-"}
-                    </p>
-                    <p>
-                      <span className="font-medium text-navy">Jadwal:</span> {doctor.jadwal_praktik}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDoctor(doctor)}
-                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-navy px-4 py-3 font-semibold text-white hover:bg-slate-800"
-                  >
-                    <CalendarPlus className="h-5 w-5" />
-                    Buat Janji Temu
-                  </button>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="Dokter tidak ditemukan" description="Ubah kata kunci atau filter poliklinik." />
-          )}
+      <main>
+        <PageHeader total={filteredDoctors.length} />
+
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-10">
+          <SearchToolbar
+            search={search}
+            setSearch={setSearch}
+            selectedPoli={selectedPoli}
+            setSelectedPoli={setSelectedPoli}
+            polyclinics={polyclinics}
+          />
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-[260px_1fr]">
+            <FilterPanel
+              polyclinics={polyclinics}
+              selectedPoli={selectedPoli}
+              setSelectedPoli={setSelectedPoli}
+              availability={availability}
+              setAvailability={setAvailability}
+              minRating={minRating}
+              setMinRating={setMinRating}
+            />
+
+            <section className="min-w-0">
+              <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-medium text-slate-500">
+                  {loading ? "Memuat dokter..." : `${filteredDoctors.length} dokter tersedia`}
+                </p>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                  Urutkan
+                  <span className="relative">
+                    <select
+                      value={sortBy}
+                      onChange={(event) => setSortBy(event.target.value)}
+                      className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-semibold text-[#12385d] outline-none focus:border-[#0a4778] focus:ring-2 focus:ring-sky-100"
+                    >
+                      {sortOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </span>
+                </label>
+              </div>
+
+              {loading ? (
+                <LoadingState />
+              ) : filteredDoctors.length ? (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {filteredDoctors.map((doctor, index) => (
+                    <DoctorCard
+                      key={doctor.id}
+                      doctor={doctor}
+                      variant={index}
+                      onBook={() => setSelectedDoctor(doctor)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+                  <EmptyState title="Dokter tidak ditemukan" description="Coba ubah kata kunci, poliklinik, atau rating minimum." />
+                </div>
+              )}
+            </section>
+          </div>
         </div>
-      )}
+      </main>
+
+      <Footer />
 
       {selectedDoctor ? (
         <BookingModal doctor={selectedDoctor} onClose={() => setSelectedDoctor(null)} />
       ) : null}
-    </DashboardLayout>
+    </div>
+  );
+}
+
+function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
+  return (
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
+        <Link to="/patient/dashboard" className="flex items-center gap-2 text-[#0a4778]">
+          <HeartPulse className="h-6 w-6" />
+          <span className="text-xl font-extrabold tracking-tight">Qlinic</span>
+        </Link>
+
+        <nav className="hidden items-center gap-6 md:flex">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `border-b-2 py-5 text-sm font-bold transition ${
+                  isActive
+                    ? "border-[#0a4778] text-[#0a4778]"
+                    : "border-transparent text-slate-500 hover:text-[#0a4778]"
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            to="/patient/find-doctor"
+            className="rounded-md bg-[#073e69] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#052f50]"
+          >
+            Book Appointment
+          </Link>
+          <IconButton label="Notifikasi" icon={Bell} />
+          <IconButton label="Pengaturan" icon={Settings} />
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-50 text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
+            aria-label={`Logout ${user?.nama || "pasien"}`}
+            title="Logout"
+          >
+            <UserRound className="h-5 w-5" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={onToggleMenu}
+          className="rounded-lg border border-slate-200 bg-white p-2 text-[#0a4778] shadow-sm md:hidden"
+          aria-label="Buka menu"
+        >
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </div>
+
+      {open ? (
+        <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg md:hidden">
+          <nav className="grid gap-1">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={onCloseMenu}
+                className={({ isActive }) =>
+                  `rounded-lg px-3 py-2 text-sm font-bold ${
+                    isActive ? "bg-sky-50 text-[#0a4778]" : "text-slate-600"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="mt-4 grid grid-cols-[1fr_auto] gap-3">
+            <Link
+              to="/patient/find-doctor"
+              onClick={onCloseMenu}
+              className="rounded-md bg-[#073e69] px-4 py-2.5 text-center text-sm font-bold text-white"
+            >
+              Book Appointment
+            </Link>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600"
+              aria-label="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </header>
+  );
+}
+
+function PageHeader({ total }) {
+  return (
+    <section className="bg-[#0a4778] text-white">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:px-6 sm:flex-row sm:items-end sm:justify-between lg:px-10">
+        <div>
+          <h1 className="text-3xl font-bold tracking-normal">
+            Temukan Dokter
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-sky-100">
+            Cari dokter, pilih jadwal, lalu buat janji temu dalam satu alur.
+          </p>
+        </div>
+        <div className="w-fit rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-sky-50 ring-1 ring-white/15">
+          {total} hasil
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SearchToolbar({ search, setSearch, selectedPoli, setSelectedPoli, polyclinics }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="grid gap-3 lg:grid-cols-[1fr_260px_auto]">
+        <label className="relative block">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm font-medium text-[#12385d] outline-none transition placeholder:text-slate-400 focus:border-[#0a4778] focus:bg-white focus:ring-2 focus:ring-sky-100"
+            placeholder="Cari nama dokter, spesialisasi, atau klinik"
+          />
+        </label>
+
+        <label className="relative block">
+          <MapPin className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <select
+            value={selectedPoli}
+            onChange={(event) => setSelectedPoli(event.target.value)}
+            className="h-12 w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 pl-12 pr-10 text-sm font-semibold text-[#12385d] outline-none transition focus:border-[#0a4778] focus:bg-white focus:ring-2 focus:ring-sky-100"
+          >
+            <option value="">Semua Poliklinik</option>
+            {polyclinics.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.nama_poli}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        </label>
+
+        <button
+          type="button"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#073e69] px-6 text-sm font-semibold text-white transition hover:bg-[#052f50]"
+        >
+          <Search className="h-4 w-4" />
+          Cari
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function FilterPanel({
+  polyclinics,
+  selectedPoli,
+  setSelectedPoli,
+  availability,
+  setAvailability,
+  minRating,
+  setMinRating
+}) {
+  return (
+    <aside className="h-fit rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-5 flex items-center justify-between">
+        <h2 className="inline-flex items-center gap-2 text-base font-semibold text-[#12385d]">
+          <SlidersHorizontal className="h-5 w-5 text-[#0a4778]" />
+          Filter
+        </h2>
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedPoli("");
+            setMinRating(0);
+            setAvailability("Hari Ini");
+          }}
+          className="text-sm font-semibold text-[#0a4778] hover:text-[#052f50]"
+        >
+          Reset
+        </button>
+      </div>
+
+      <FilterGroup title="Poliklinik">
+        <FilterOption checked={!selectedPoli} label="Semua Poliklinik" onChange={() => setSelectedPoli("")} />
+        {polyclinics.slice(0, 5).map((item) => (
+          <FilterOption
+            key={item.id}
+            checked={selectedPoli === String(item.id)}
+            label={item.nama_poli}
+            onChange={() => setSelectedPoli(String(item.id))}
+          />
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Ketersediaan">
+        <div className="flex flex-wrap gap-2">
+          {availabilityOptions.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setAvailability(option)}
+              className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
+                availability === option
+                  ? "bg-[#073e69] text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </FilterGroup>
+
+      <FilterGroup title="Rating Minimum">
+        {[4.5, 4.0].map((rating) => (
+          <FilterOption
+            key={rating}
+            checked={minRating === rating}
+            label={`${rating.toFixed(1)}+`}
+            suffix={<Star className="h-4 w-4 fill-amber-400 text-amber-400" />}
+            onChange={() => setMinRating(minRating === rating ? 0 : rating)}
+          />
+        ))}
+      </FilterGroup>
+    </aside>
+  );
+}
+
+function DoctorCard({ doctor, variant, onBook }) {
+  return (
+    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sky-200 hover:shadow-card">
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <DoctorAvatar variant={variant} />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-lg font-semibold text-[#12385d]">{doctor.nama}</h2>
+              <p className="mt-1 text-sm font-semibold text-[#0d78b7]">{doctor.spesialisasi}</p>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-sm font-semibold text-[#12385d]">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+              {doctor.ui.rating.toFixed(1)}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-2 text-sm text-slate-500">
+            <p className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+              <span className="truncate">{doctor.nama_poli || "Qlinic Pusat"}</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <Stethoscope className="h-4 w-4 shrink-0 text-slate-400" />
+              {doctor.ui.experience} tahun pengalaman
+            </p>
+            <p className="flex items-center gap-2">
+              <Clock3 className="h-4 w-4 shrink-0 text-slate-400" />
+              {doctor.jadwal_praktik || doctor.ui.nextSchedule}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Jadwal Terdekat</p>
+          <p className="mt-1 text-sm font-semibold text-[#12385d]">{doctor.ui.nextSchedule}</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-[#0a4778] transition hover:bg-sky-50"
+          >
+            Profil
+          </button>
+          <button
+            type="button"
+            onClick={onBook}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#073e69] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#052f50]"
+          >
+            <CalendarPlus className="h-4 w-4" />
+            Buat Janji
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -158,7 +517,7 @@ function BookingModal({ doctor, onClose }) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-emerald-700">Booking berhasil</p>
-                <h3 className="mt-1 text-2xl font-bold text-navy">Antrean #{result.nomor_antrean}</h3>
+                <h3 className="mt-1 text-2xl font-semibold text-navy">Antrean #{result.nomor_antrean}</h3>
               </div>
               <StatusBadge status={result.status_booking} />
             </div>
@@ -222,6 +581,81 @@ function BookingModal({ doctor, onClose }) {
   );
 }
 
+function Footer() {
+  return (
+    <footer className="mt-20 border-t border-[#c8d7ec] bg-[#dfeafb]">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 text-sm text-slate-600 sm:px-6 md:flex-row md:items-end md:justify-between lg:px-10">
+        <div>
+          <p className="font-extrabold text-[#0a4778]">Qlinic</p>
+          <p className="mt-4 text-xs font-medium">&copy; 2024 Qlinic Clinical Management. All rights reserved.</p>
+        </div>
+        <nav className="flex flex-wrap gap-x-7 gap-y-3 text-xs font-semibold">
+          <a href="#privacy" className="hover:text-[#0a4778]">Privacy Policy</a>
+          <a href="#terms" className="hover:text-[#0a4778]">Terms of Service</a>
+          <a href="#support" className="hover:text-[#0a4778]">Contact Support</a>
+          <a href="#locations" className="hover:text-[#0a4778]">Clinic Locations</a>
+        </nav>
+      </div>
+    </footer>
+  );
+}
+
+function FilterGroup({ title, children }) {
+  return (
+    <div className="border-t border-slate-100 pt-5 first:border-t-0 first:pt-0">
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">{title}</h3>
+      <div className="space-y-2.5">{children}</div>
+    </div>
+  );
+}
+
+function FilterOption({ checked, label, suffix, onChange }) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+      <span className="flex min-w-0 items-center gap-3">
+        <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
+        <span
+          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+            checked ? "border-[#0a4778] bg-[#0a4778] text-white" : "border-slate-300 bg-white"
+          }`}
+        >
+          {checked ? <Check className="h-3 w-3" /> : null}
+        </span>
+        <span className="truncate">{label}</span>
+      </span>
+      {suffix ? <span className="shrink-0">{suffix}</span> : null}
+    </label>
+  );
+}
+
+function DoctorAvatar({ variant }) {
+  const tones = [
+    "bg-sky-50 text-[#0a4778]",
+    "bg-emerald-50 text-emerald-700",
+    "bg-cyan-50 text-cyan-700",
+    "bg-slate-100 text-slate-600"
+  ];
+
+  return (
+    <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-xl ${tones[variant % tones.length]}`}>
+      <Stethoscope className="h-8 w-8" />
+    </div>
+  );
+}
+
+function IconButton({ label, icon: Icon }) {
+  return (
+    <button
+      type="button"
+      className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#0a4778]"
+      aria-label={label}
+      title={label}
+    >
+      <Icon className="h-5 w-5" />
+    </button>
+  );
+}
+
 function Info({ label, value }) {
   return (
     <div className="rounded-lg border border-slate-200 p-4">
@@ -229,4 +663,17 @@ function Info({ label, value }) {
       <p className="mt-1 font-semibold text-navy">{value}</p>
     </div>
   );
+}
+
+function doctorUiMeta(index, doctor) {
+  const schedules = ["Hari ini, 09:00", "Hari ini, 14:30", "Besok, 08:00", "Besok, 16:00"];
+  const rating = [4.9, 4.8, 5.0, 4.7][index % 4];
+  const experience = [12, 8, 15, 6][index % 4];
+
+  return {
+    rating,
+    experience,
+    nextSchedule: doctor.jadwal_praktik || schedules[index % schedules.length],
+    score: rating * 10 + experience
+  };
 }

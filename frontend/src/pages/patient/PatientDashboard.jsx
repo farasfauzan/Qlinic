@@ -1,19 +1,45 @@
-import { CalendarDays, ClipboardList, Hash, Search, UserRound } from "lucide-react";
-import { Link } from "react-router-dom";
+import {
+  Bell,
+  CalendarDays,
+  ChevronRight,
+  Clock3,
+  FileText,
+  HeartPulse,
+  HelpCircle,
+  LogOut,
+  MapPin,
+  Menu,
+  Navigation,
+  Phone,
+  Pill,
+  Search,
+  Settings,
+  Stethoscope,
+  UserRound,
+  X
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { EmptyState, LoadingState } from "../../components/States";
-import { StatCard } from "../../components/StatCard";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
-import { DashboardLayout } from "../../layouts/DashboardLayout";
 import { formatDate, formatTime } from "../../utils";
 
+const navItems = [
+  { label: "Dashboard", path: "/patient/dashboard" },
+  { label: "Find Doctors", path: "/patient/find-doctor" },
+  { label: "Appointments", path: "/patient/appointments" },
+  { label: "My Records", path: "/patient/medical-records" }
+];
+
 export default function PatientDashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -32,115 +58,461 @@ export default function PatientDashboard() {
     loadData();
   }, []);
 
-  const upcoming = useMemo(
-    () =>
-      bookings
-        .filter((booking) => booking.status_booking === "Pending")
-        .sort((a, b) => new Date(a.tanggal_kunjungan) - new Date(b.tanggal_kunjungan))[0],
+  const pendingBookings = useMemo(
+    () => bookings.filter((booking) => booking.status_booking === "Pending"),
     [bookings]
   );
 
+  const upcoming = useMemo(
+    () => [...pendingBookings].sort((a, b) => bookingDateTime(a) - bookingDateTime(b))[0],
+    [pendingBookings]
+  );
+
+  const latestRecord = useMemo(
+    () =>
+      [...records].sort(
+        (a, b) => new Date(b.tanggal_periksa || 0) - new Date(a.tanggal_periksa || 0)
+      )[0],
+    [records]
+  );
+
+  function handleLogout() {
+    logout();
+    navigate("/login");
+  }
+
   return (
-    <DashboardLayout
-      title={`Halo, ${user?.nama || "Pasien"}`}
-      subtitle="Pantau janji temu, antrean, dan rekam medis Anda."
-    >
-      {loading ? (
-        <LoadingState />
-      ) : (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <StatCard
-              icon={CalendarDays}
-              label="Janji Mendatang"
-              value={bookings.filter((item) => item.status_booking === "Pending").length}
-              hint={upcoming ? `${formatDate(upcoming.tanggal_kunjungan)} pukul ${formatTime(upcoming.jam_slot)}` : "Tidak ada booking aktif"}
-            />
-            <StatCard
-              icon={Hash}
-              label="Nomor Antrean"
-              value={upcoming ? `#${upcoming.nomor_antrean}` : "-"}
-              hint={upcoming ? upcoming.dokter_nama : "Buat booking baru untuk mendapat antrean"}
-              tone="amber"
-            />
-            <StatCard
-              icon={ClipboardList}
-              label="Riwayat Kunjungan"
-              value={records.length}
-              hint="Rekam medis tersimpan"
-              tone="green"
-            />
+    <div className="min-h-screen bg-[#f4f7fd] text-[#12385d]">
+      <PatientTopNav
+        user={user}
+        open={mobileMenuOpen}
+        onToggleMenu={() => setMobileMenuOpen((value) => !value)}
+        onCloseMenu={() => setMobileMenuOpen(false)}
+        onLogout={handleLogout}
+      />
+
+      <main>
+        <HeroBanner userName={firstName(user?.nama)} />
+
+        {loading ? (
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
+            <LoadingState />
           </div>
-
-          <div className="grid gap-5 lg:grid-cols-[1.4fr_0.8fr]">
-            <section className="app-card rounded-2xl p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-lg font-bold text-navy">Ringkasan Janji Temu</h2>
-                <Link
-                  to="/patient/find-doctor"
-                  className="inline-flex items-center gap-2 rounded-lg bg-clinical px-3 py-2 text-sm font-semibold text-white hover:bg-sky-500"
-                >
-                  <Search className="h-4 w-4" />
-                  Cari Dokter
-                </Link>
+        ) : (
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
+            <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+              <div className="space-y-6">
+                <UpcomingAppointmentCard upcoming={upcoming} />
+                <LatestRecordCard record={latestRecord} />
               </div>
-              {upcoming ? (
-                <div className="rounded-xl bg-sky-50 p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm text-slate-500">Booking berikutnya</p>
-                      <h3 className="mt-1 text-xl font-bold text-navy">{upcoming.dokter_nama}</h3>
-                      <p className="text-sm text-slate-600">{upcoming.spesialisasi}</p>
-                    </div>
-                    <StatusBadge status={upcoming.status_booking} />
-                  </div>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl bg-white p-4">
-                      <p className="text-xs text-slate-500">Tanggal</p>
-                      <p className="font-semibold text-navy">{formatDate(upcoming.tanggal_kunjungan)}</p>
-                    </div>
-                    <div className="rounded-xl bg-white p-4">
-                      <p className="text-xs text-slate-500">Jam</p>
-                      <p className="font-semibold text-navy">{formatTime(upcoming.jam_slot)}</p>
-                    </div>
-                    <div className="rounded-xl bg-white p-4">
-                      <p className="text-xs text-slate-500">Antrean</p>
-                      <p className="font-semibold text-navy">#{upcoming.nomor_antrean}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <EmptyState
-                  title="Belum ada janji aktif"
-                  description="Cari dokter dan buat appointment sesuai jadwal praktik."
-                />
-              )}
-            </section>
 
-            <section className="app-card rounded-2xl p-5">
-              <h2 className="mb-4 text-lg font-bold text-navy">Riwayat Terbaru</h2>
-              {records.length ? (
-                <div className="space-y-3">
-                  {records.slice(0, 3).map((record) => (
-                    <div key={record.id} className="rounded-lg border border-slate-200 p-4">
-                      <div className="flex items-start gap-3">
-                        <UserRound className="mt-1 h-5 w-5 text-clinical" />
-                        <div>
-                          <p className="font-semibold text-navy">{record.dokter_nama}</p>
-                          <p className="text-sm text-slate-500">{formatDate(record.tanggal_periksa)}</p>
-                          <p className="mt-2 text-sm text-slate-600">{record.diagnosa}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="Rekam medis kosong" description="Data akan muncul setelah pemeriksaan selesai." />
-              )}
-            </section>
+              <aside className="space-y-6">
+                <ClinicInfoCard />
+                <TipCard />
+                <MapPreview />
+              </aside>
+            </div>
+          </div>
+        )}
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
+function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
+  return (
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
+        <Link to="/patient/dashboard" className="flex items-center gap-2 text-[#0a4778]">
+          <HeartPulse className="h-6 w-6" />
+          <span className="text-xl font-extrabold tracking-tight">Qlinic</span>
+        </Link>
+
+        <nav className="hidden items-center gap-6 md:flex">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `border-b-2 py-5 text-sm font-bold transition ${
+                  isActive
+                    ? "border-[#0a4778] text-[#0a4778]"
+                    : "border-transparent text-slate-500 hover:text-[#0a4778]"
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            to="/patient/find-doctor"
+            className="rounded-md bg-[#073e69] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#052f50]"
+          >
+            Book Appointment
+          </Link>
+          <IconButton label="Notifikasi" icon={Bell} />
+          <IconButton label="Pengaturan" icon={Settings} />
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-50 text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
+            aria-label={`Logout ${user?.nama || "pasien"}`}
+            title="Logout"
+          >
+            <UserRound className="h-5 w-5" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={onToggleMenu}
+          className="rounded-lg border border-slate-200 bg-white p-2 text-[#0a4778] shadow-sm md:hidden"
+          aria-label="Buka menu"
+        >
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </div>
+
+      {open ? (
+        <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg md:hidden">
+          <nav className="grid gap-1">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={onCloseMenu}
+                className={({ isActive }) =>
+                  `rounded-lg px-3 py-2 text-sm font-bold ${
+                    isActive ? "bg-sky-50 text-[#0a4778]" : "text-slate-600"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="mt-4 grid grid-cols-[1fr_auto] gap-3">
+            <Link
+              to="/patient/find-doctor"
+              onClick={onCloseMenu}
+              className="rounded-md bg-[#073e69] px-4 py-2.5 text-center text-sm font-bold text-white"
+            >
+              Book Appointment
+            </Link>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600"
+              aria-label="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
-      )}
-    </DashboardLayout>
+      ) : null}
+    </header>
   );
+}
+
+function HeroBanner({ userName }) {
+  return (
+    <section className="bg-[#0a4778] text-white">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-9 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-10">
+        <div>
+          <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">
+            Halo, {userName}!
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-sky-100">
+            Pantau janji temu, nomor antrean, dan rekam medis terbaru tanpa banyak langkah.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Link
+            to="/patient/find-doctor"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#58b9f6] px-5 py-3 text-sm font-semibold text-[#06385f] shadow-sm transition hover:bg-[#79c8fa]"
+          >
+            <Search className="h-4 w-4" />
+            Booking Sekarang
+          </Link>
+          <Link
+            to="/patient/appointments"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/25 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            <CalendarDays className="h-4 w-4" />
+            Appointment
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function UpcomingAppointmentCard({ upcoming }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <SectionHeader
+        icon={CalendarDays}
+        title="Janji temu mendatang"
+        actionLabel="Lihat semua"
+        actionTo="/patient/appointments"
+      />
+
+      {upcoming ? (
+        <div className="mt-5 rounded-xl border border-sky-100 bg-sky-50/70 p-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex gap-4">
+              <DoctorAvatar />
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-semibold text-[#12385d]">{upcoming.dokter_nama}</h3>
+                  <StatusBadge status={upcoming.status_booking} />
+                </div>
+                <p className="mt-1 text-sm font-semibold text-[#0a4778]">{upcoming.spesialisasi || "Dokter Umum"}</p>
+                <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                  <InfoInline icon={Clock3} text={`${formatDate(upcoming.tanggal_kunjungan)} pukul ${formatTime(upcoming.jam_slot)}`} />
+                  <InfoInline icon={MapPin} text={upcoming.nama_poli || "Qlinic Pusat"} />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-white px-4 py-3 text-center ring-1 ring-slate-200 md:min-w-24">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Antrean</p>
+              <p className="mt-1 text-xl font-bold text-[#12385d]">#{upcoming.nomor_antrean}</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
+          <EmptyState
+            title="Belum ada janji aktif"
+            description="Cari dokter dan buat appointment sesuai jadwal praktik."
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function LatestRecordCard({ record }) {
+  const prescriptions = record?.resep_obat?.length || 0;
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <SectionHeader
+        icon={FileText}
+        title="Rekam medis terakhir"
+        actionLabel="Buka riwayat"
+        actionTo="/patient/medical-records"
+      />
+
+      {record ? (
+        <article className="mt-5 rounded-xl border border-slate-200 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-[#0a4778]">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#12385d]">{record.diagnosa || "Pemeriksaan kesehatan"}</h3>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+                  {record.catatan_dokter || record.keluhan || "Catatan pemeriksaan belum tersedia."}
+                </p>
+              </div>
+            </div>
+            <time className="shrink-0 text-sm font-semibold text-slate-500">
+              {formatDate(record.tanggal_periksa)}
+            </time>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+            <RecordBadge icon={Pill} label={`${prescriptions} resep`} />
+            <RecordBadge icon={FileText} label="Detail tersedia" />
+          </div>
+        </article>
+      ) : (
+        <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
+          <EmptyState
+            title="Rekam medis kosong"
+            description="Data akan muncul setelah pemeriksaan selesai."
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function QuickActions() {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-[#12385d]">Aksi cepat</h2>
+      <div className="mt-4 grid gap-3">
+        <QuickAction icon={Search} label="Cari dokter" to="/patient/find-doctor" />
+        <QuickAction icon={CalendarDays} label="Kelola appointment" to="/patient/appointments" />
+        <QuickAction icon={FileText} label="Lihat rekam medis" to="/patient/medical-records" />
+      </div>
+    </section>
+  );
+}
+
+function ClinicInfoCard() {
+  return (
+    <section className="rounded-xl bg-[#073e69] p-5 text-white shadow-sm">
+      <h2 className="text-base font-semibold">Info klinik</h2>
+      <div className="mt-4 space-y-4">
+        <InfoRow icon={MapPin} label="Alamat" value="Jl. Sudirman No. 45, Jakarta Selatan" />
+        <InfoRow icon={Phone} label="Kontak 24/7" value="(021) 555-0123" />
+        <InfoRow icon={Clock3} label="Operasional" value="Setiap hari, 07:00 - 22:00" />
+      </div>
+    </section>
+  );
+}
+
+function TipCard() {
+  return (
+    <section className="rounded-xl border border-orange-100 bg-[#fff8f3] p-5 text-[#7a4b2c] shadow-sm">
+      <h2 className="flex items-center gap-2 text-base font-semibold">
+        <HelpCircle className="h-5 w-5" />
+        Tips sehat hari ini
+      </h2>
+      <p className="mt-3 text-sm leading-6">
+        Minum air yang cukup dan siapkan dokumen kesehatan sebelum datang ke klinik agar proses kunjungan lebih lancar.
+      </p>
+    </section>
+  );
+}
+
+function MapPreview() {
+  return (
+    <section className="relative min-h-44 overflow-hidden rounded-xl bg-[#1b7a89] shadow-sm">
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.18)_25%,transparent_25%),linear-gradient(225deg,rgba(255,255,255,0.18)_25%,transparent_25%),linear-gradient(45deg,rgba(255,255,255,0.18)_25%,transparent_25%),linear-gradient(315deg,rgba(255,255,255,0.18)_25%,#1b7a89_25%)] bg-[length:54px_54px] bg-[position:27px_0,27px_0,0_0,0_0]" />
+      <div className="absolute inset-x-0 top-1/2 h-7 -rotate-12 bg-white/70" />
+      <div className="absolute bottom-4 left-5 h-14 w-24 rotate-[-12deg] rounded-lg bg-emerald-200/70" />
+      <div className="absolute right-5 top-5 h-16 w-20 rotate-[-12deg] rounded-lg bg-sky-100/70" />
+      <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0a4778] ring-4 ring-white/80" />
+      <div className="relative flex min-h-44 items-center justify-center">
+        <Link
+          to="/patient/find-doctor"
+          className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#0a4778] shadow-lg"
+        >
+          <Navigation className="h-4 w-4" />
+          Petunjuk Arah
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function SectionHeader({ icon: Icon, title, actionLabel, actionTo }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <h2 className="flex items-center gap-2 text-base font-semibold text-[#12385d]">
+        <Icon className="h-5 w-5 text-[#0a4778]" />
+        {title}
+      </h2>
+      <Link to={actionTo} className="inline-flex items-center gap-1 text-sm font-semibold text-[#0a4778] hover:text-[#052f50]">
+        {actionLabel}
+        <ChevronRight className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
+
+function QuickAction({ icon: Icon, label, to }) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-3 text-sm font-semibold text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-[#0a4778]"
+    >
+      <span className="flex items-center gap-3">
+        <Icon className="h-4 w-4" />
+        {label}
+      </span>
+      <ChevronRight className="h-4 w-4" />
+    </Link>
+  );
+}
+
+function DoctorAvatar() {
+  return (
+    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#0a4778] ring-1 ring-sky-100">
+      <Stethoscope className="h-7 w-7" />
+    </div>
+  );
+}
+
+function IconButton({ label, icon: Icon }) {
+  return (
+    <button
+      type="button"
+      className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#0a4778]"
+      aria-label={label}
+      title={label}
+    >
+      <Icon className="h-5 w-5" />
+    </button>
+  );
+}
+
+function InfoInline({ icon: Icon, text }) {
+  return (
+    <p className="flex min-w-0 items-center gap-2">
+      <Icon className="h-4 w-4 shrink-0 text-slate-400" />
+      <span className="truncate">{text}</span>
+    </p>
+  );
+}
+
+function InfoRow({ icon: Icon, label, value }) {
+  return (
+    <div className="flex gap-3">
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
+      <div>
+        <p className="text-sm font-semibold text-sky-200">{label}</p>
+        <p className="mt-0.5 text-sm font-medium leading-5 text-white">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function RecordBadge({ icon: Icon, label }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1.5 text-sm font-semibold text-[#37638a]">
+      <Icon className="h-4 w-4" />
+      {label}
+    </span>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="mt-20 border-t border-[#c8d7ec] bg-[#dfeafb]">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 text-sm text-slate-600 sm:px-6 md:flex-row md:items-end md:justify-between lg:px-10">
+        <div>
+          <p className="font-extrabold text-[#0a4778]">Qlinic</p>
+          <p className="mt-4 text-xs font-medium">&copy; 2024 Qlinic Clinical Management. All rights reserved.</p>
+        </div>
+        <nav className="flex flex-wrap gap-x-7 gap-y-3 text-xs font-semibold">
+          <a href="#privacy" className="hover:text-[#0a4778]">Privacy Policy</a>
+          <a href="#terms" className="hover:text-[#0a4778]">Terms of Service</a>
+          <a href="#support" className="hover:text-[#0a4778]">Contact Support</a>
+          <a href="#locations" className="hover:text-[#0a4778]">Clinic Locations</a>
+        </nav>
+      </div>
+    </footer>
+  );
+}
+
+function firstName(name) {
+  return name?.trim().split(/\s+/)[0] || "Pasien";
+}
+
+function bookingDateTime(booking) {
+  const time = booking.jam_slot ? formatTime(booking.jam_slot) : "00:00";
+  return new Date(`${booking.tanggal_kunjungan}T${time}`).getTime();
 }
