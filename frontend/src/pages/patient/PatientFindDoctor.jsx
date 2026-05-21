@@ -1,10 +1,12 @@
 import {
   Bell,
+  CalendarDays,
   CalendarPlus,
   Check,
   ChevronDown,
   Clock3,
   HeartPulse,
+  Info as InfoCircle,
   LogOut,
   MapPin,
   Menu,
@@ -24,7 +26,7 @@ import { Modal } from "../../components/Modal";
 import { EmptyState, LoadingState } from "../../components/States";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
-import { formatDate, formatTime, timeSlots, toInputDate } from "../../utils";
+import { formatDate, formatTime, timeSlots } from "../../utils";
 
 const navItems = [
   { label: "Dashboard", path: "/patient/dashboard" },
@@ -220,7 +222,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
             to="/patient/find-doctor"
             className="rounded-md bg-[#073e69] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#052f50]"
           >
-            Book Appointment
+            Buat Janji
           </Link>
           <IconButton label="Notifikasi" icon={Bell} />
           <IconButton label="Pengaturan" icon={Settings} />
@@ -269,7 +271,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
               onClick={onCloseMenu}
               className="rounded-md bg-[#073e69] px-4 py-2.5 text-center text-sm font-bold text-white"
             >
-              Book Appointment
+              Buat Janji
             </Link>
             <button
               type="button"
@@ -477,7 +479,7 @@ function DoctorCard({ doctor, variant, onBook }) {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#073e69] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#052f50]"
           >
             <CalendarPlus className="h-4 w-4" />
-            Buat Janji
+            Pilih Jadwal
           </button>
         </div>
       </div>
@@ -486,8 +488,11 @@ function DoctorCard({ doctor, variant, onBook }) {
 }
 
 function BookingModal({ doctor, onClose }) {
-  const [tanggal, setTanggal] = useState(toInputDate());
-  const [jamSlot, setJamSlot] = useState(timeSlots[0]);
+  const dateOptions = useMemo(() => buildDateOptions(), []);
+  const availableSlots = timeSlots.slice(0, 6);
+  const disabledSlots = new Set([availableSlots[availableSlots.length - 1]]);
+  const [tanggal, setTanggal] = useState(dateOptions[1]?.value || toInputDateLocal(new Date()));
+  const [jamSlot, setJamSlot] = useState(availableSlots.find((slot) => !disabledSlots.has(slot)) || timeSlots[0]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -510,13 +515,13 @@ function BookingModal({ doctor, onClose }) {
   }
 
   return (
-    <Modal title={`Booking ${doctor.nama}`} onClose={onClose}>
+    <Modal title="Pilih Jadwal" onClose={onClose}>
       {result ? (
         <div className="space-y-4">
-          <div className="rounded-lg bg-emerald-50 p-5">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-emerald-700">Booking berhasil</p>
+                <p className="text-sm font-semibold text-emerald-700">Janji temu berhasil</p>
                 <h3 className="mt-1 text-2xl font-semibold text-navy">Antrean #{result.nomor_antrean}</h3>
               </div>
               <StatusBadge status={result.status_booking} />
@@ -528,53 +533,115 @@ function BookingModal({ doctor, onClose }) {
             <Info label="Jam" value={formatTime(result.jam_slot)} />
             <Info label="Poliklinik" value={result.nama_poli || "-"} />
           </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-[#0a4778] transition hover:bg-sky-50"
+            >
+              Tutup
+            </button>
+            <Link
+              to="/patient/appointments"
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-lg bg-[#073e69] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#052f50]"
+            >
+              Lihat Appointment
+            </Link>
+          </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-xl bg-sky-50 p-4">
-            <p className="font-semibold text-navy">{doctor.nama}</p>
-            <p className="text-sm text-slate-600">
-              {doctor.spesialisasi} - {doctor.jadwal_praktik}
-            </p>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="flex gap-3 rounded-xl bg-sky-50 p-4">
+            <DoctorAvatar variant={0} />
+            <div className="min-w-0">
+              <p className="font-semibold text-[#12385d]">{doctor.nama}</p>
+              <p className="mt-1 text-sm font-medium text-[#0d78b7]">{doctor.spesialisasi}</p>
+              <p className="mt-2 text-sm text-slate-500">{doctor.jadwal_praktik || doctor.ui?.nextSchedule}</p>
+            </div>
           </div>
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">Tanggal Kunjungan</span>
-            <input
-              type="date"
-              value={tanggal}
-              min={toInputDate()}
-              onChange={(event) => setTanggal(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-clinical focus:ring-2 focus:ring-sky-100"
-              required
-            />
-          </label>
+
           <div>
-            <p className="mb-2 text-sm font-medium text-slate-700">Jam Slot</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {timeSlots.map((slot) => (
+            <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#12385d]">
+              <CalendarDays className="h-4 w-4 text-[#0a4778]" />
+              Pilih Hari
+            </p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {dateOptions.map((option) => (
                 <button
                   type="button"
-                  key={slot}
-                  onClick={() => setJamSlot(slot)}
-                  className={`rounded-lg border px-3 py-3 text-sm font-semibold ${
-                    jamSlot === slot
-                      ? "border-clinical bg-sky-50 text-clinical"
-                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                  key={option.value}
+                  onClick={() => setTanggal(option.value)}
+                  className={`rounded-lg border px-3 py-3 text-center text-sm transition ${
+                    tanggal === option.value
+                      ? "border-[#0a4778] bg-[#58b9f6] text-[#06385f] shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-sky-50"
                   }`}
                 >
-                  {slot}
+                  <span className="block text-xs font-medium">{option.day}</span>
+                  <span className="mt-1 block text-base font-semibold">{option.date}</span>
                 </button>
               ))}
             </div>
           </div>
+
+          <div>
+            <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#12385d]">
+              <Clock3 className="h-4 w-4 text-[#0a4778]" />
+              Pilih Jam
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {availableSlots.map((slot) => {
+                const disabled = disabledSlots.has(slot);
+                return (
+                <button
+                  type="button"
+                  key={slot}
+                  disabled={disabled}
+                  onClick={() => setJamSlot(slot)}
+                  className={`rounded-lg border px-3 py-3 text-sm font-semibold transition ${
+                    disabled
+                      ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-300"
+                      : 
+                    jamSlot === slot
+                      ? "border-[#073e69] bg-[#073e69] text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-sky-50"
+                  }`}
+                >
+                  {disabled ? "Penuh" : `${slot} - ${addOneHour(slot)}`}
+                </button>
+              );
+              })}
+            </div>
+          </div>
+
+          <div className="flex gap-3 rounded-xl border border-sky-100 bg-sky-50/80 p-4 text-[#12385d]">
+            <InfoCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#0a4778]" />
+            <div>
+              <p className="text-sm font-semibold">Informasi penting</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Datang 10 menit lebih awal dan siapkan kartu identitas untuk proses administrasi.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Batal
+            </button>
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-navy px-5 py-3 font-semibold text-white hover:bg-slate-800 disabled:opacity-70"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#073e69] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#052f50] disabled:opacity-70"
           >
             <CalendarPlus className="h-5 w-5" />
-            {loading ? "Mengecek slot..." : "Konfirmasi Booking"}
+              {loading ? "Mengecek slot..." : "Konfirmasi Jadwal"}
           </button>
+          </div>
         </form>
       )}
     </Modal>
@@ -676,4 +743,28 @@ function doctorUiMeta(index, doctor) {
     nextSchedule: doctor.jadwal_praktik || schedules[index % schedules.length],
     score: rating * 10 + experience
   };
+}
+
+function buildDateOptions() {
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() + index);
+    return {
+      value: toInputDateLocal(date),
+      day: new Intl.DateTimeFormat("id-ID", { weekday: "short" }).format(date),
+      date: new Intl.DateTimeFormat("id-ID", { day: "2-digit" }).format(date)
+    };
+  });
+}
+
+function toInputDateLocal(value) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addOneHour(value) {
+  const [hour, minute] = value.split(":").map(Number);
+  return `${String(hour + 1).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }

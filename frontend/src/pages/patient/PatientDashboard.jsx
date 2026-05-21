@@ -153,7 +153,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
             to="/patient/find-doctor"
             className="rounded-md bg-[#073e69] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#052f50]"
           >
-            Book Appointment
+            Buat Janji
           </Link>
           <IconButton label="Notifikasi" icon={Bell} />
           <IconButton label="Pengaturan" icon={Settings} />
@@ -202,7 +202,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
               onClick={onCloseMenu}
               className="rounded-md bg-[#073e69] px-4 py-2.5 text-center text-sm font-bold text-white"
             >
-              Book Appointment
+              Buat Janji
             </Link>
             <button
               type="button"
@@ -238,7 +238,7 @@ function HeroBanner({ userName }) {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#58b9f6] px-5 py-3 text-sm font-semibold text-[#06385f] shadow-sm transition hover:bg-[#79c8fa]"
           >
             <Search className="h-4 w-4" />
-            Booking Sekarang
+            Buat Janji
           </Link>
           <Link
             to="/patient/appointments"

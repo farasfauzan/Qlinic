@@ -229,7 +229,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
             to="/patient/find-doctor"
             className="rounded-md bg-[#073e69] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#052f50]"
           >
-            Book Appointment
+            Buat Janji
           </Link>
           <IconButton label="Notifikasi" icon={Bell} />
           <IconButton label="Pengaturan" icon={Settings} />
@@ -278,7 +278,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
               onClick={onCloseMenu}
               className="rounded-md bg-[#073e69] px-4 py-2.5 text-center text-sm font-bold text-white"
             >
-              Book Appointment
+              Buat Janji
             </Link>
             <button
               type="button"
