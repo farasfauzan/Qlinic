@@ -16,7 +16,8 @@ const config = {
   port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "qlinic"
+  database: process.env.DB_NAME || "qlinic",
+  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : undefined
 };
 
 function addDays(days) {
@@ -31,7 +32,8 @@ async function run() {
     port: config.port,
     user: config.user,
     password: config.password,
-    multipleStatements: true
+    multipleStatements: true,
+    ssl: config.ssl
   });
 
   await serverConnection.query(
