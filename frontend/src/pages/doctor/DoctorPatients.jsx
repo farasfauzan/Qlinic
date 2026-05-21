@@ -168,7 +168,7 @@ export default function DoctorPatients() {
             {loading ? (
               <LoadingState />
             ) : bookings.length ? (
-              <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+              <div className="grid gap-6 lg:grid-cols-3">
                 <PatientsList
                   bookings={filteredBookings}
                   quickBookingId={quickBookingId}
@@ -181,7 +181,7 @@ export default function DoctorPatients() {
             ) : (
               <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
                 <EmptyState
-                  title="Belum ada pasien booking"
+                  title="Belum ada pasien"
                   description="Pasien yang membuat booking dengan Anda akan tampil di halaman ini."
                 />
                 <div className="mt-4 flex justify-center">
@@ -320,7 +320,7 @@ function PageHeader({ total, pending, done }) {
         <div>
           <p className="text-sm font-semibold text-sky-100">Daftar pasien</p>
           <h1 className="mt-2 text-3xl font-bold tracking-normal sm:text-4xl">
-            Pasien Booking
+            Daftar Pasien
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-sky-100">
             Cari pasien, cek status kunjungan, lalu isi rekam medis dari alur yang singkat.
@@ -375,7 +375,7 @@ function PatientsToolbar({
 }) {
   return (
     <section className="surface-lift rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div className="grid gap-3 lg:grid-cols-2 lg:items-end">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
             Cari pasien
@@ -391,7 +391,7 @@ function PatientsToolbar({
           </span>
         </label>
 
-        <div className="flex flex-col gap-3 lg:min-w-[520px]">
+        <div className="flex flex-col gap-3">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Status
           </span>
@@ -435,7 +435,7 @@ function PatientsToolbar({
 function PatientsList({ bookings, quickBookingId, onSelect, onRecord, onReset }) {
   if (!bookings.length) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+      <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm lg:col-span-2">
         <EmptyState
           title="Pasien tidak ditemukan"
           description="Coba ubah kata kunci atau filter status."
@@ -454,10 +454,10 @@ function PatientsList({ bookings, quickBookingId, onSelect, onRecord, onReset })
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-2">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-[#12385d]">Daftar pasien booking</h2>
+          <h2 className="text-lg font-bold text-[#12385d]">Daftar pasien</h2>
           <p className="mt-1 text-sm text-slate-500">
             Pilih detail pasien atau langsung isi rekam medis.
           </p>
@@ -472,12 +472,12 @@ function PatientsList({ bookings, quickBookingId, onSelect, onRecord, onReset })
       </div>
 
       <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
-        <div className="hidden grid-cols-[100px_1fr_160px_140px_170px] gap-4 bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 lg:grid">
-          <span>Antrean</span>
-          <span>Pasien</span>
-          <span>Jadwal</span>
-          <span>Status</span>
-          <span className="text-right">Aksi</span>
+        <div className="hidden items-center gap-4 bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 lg:flex">
+          <span className="w-24 shrink-0">Antrean</span>
+          <span className="min-w-0 flex-1">Pasien</span>
+          <span className="w-40 shrink-0">Jadwal</span>
+          <span className="w-36 shrink-0">Status</span>
+          <span className="w-44 shrink-0 text-right">Aksi</span>
         </div>
 
         <div className="divide-y divide-slate-100">
@@ -501,23 +501,23 @@ function PatientRow({ booking, active, onSelect, onRecord }) {
 
   return (
     <article
-      className={`grid gap-4 p-4 transition lg:grid-cols-[100px_1fr_160px_140px_170px] lg:items-center ${
+      className={`grid gap-4 p-4 transition lg:flex lg:items-center lg:gap-4 ${
         active ? "bg-sky-50/80" : "bg-white hover:bg-sky-50/40"
       }`}
     >
-      <div className="flex items-center justify-between gap-3 lg:block">
+      <div className="flex items-center justify-between gap-3 lg:w-24 lg:shrink-0 lg:block">
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#073e69] text-sm font-bold text-white">
           {booking.nomor_antrean}
         </span>
         <VisitStatus className="inline-flex lg:hidden" status={booking.status_booking} />
       </div>
 
-      <div className="min-w-0">
+      <div className="min-w-0 lg:flex-1">
         <h3 className="truncate font-bold text-[#12385d]">{booking.pasien_nama}</h3>
         <p className="mt-1 text-sm text-slate-500">NIK {booking.nik || "-"}</p>
       </div>
 
-      <div>
+      <div className="lg:w-40 lg:shrink-0">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 lg:hidden">Jadwal</p>
         <p className="mt-1 text-sm font-bold text-[#12385d] lg:mt-0">
           {formatDate(booking.tanggal_kunjungan)}
@@ -525,9 +525,11 @@ function PatientRow({ booking, active, onSelect, onRecord }) {
         <p className="mt-0.5 text-sm font-medium text-slate-500">{formatTime(booking.jam_slot)}</p>
       </div>
 
-      <VisitStatus className="hidden lg:inline-flex" status={booking.status_booking} />
+      <div className="hidden lg:block lg:w-36 lg:shrink-0">
+        <VisitStatus status={booking.status_booking} />
+      </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+      <div className="grid gap-2 sm:grid-cols-2 lg:w-44 lg:shrink-0 lg:grid-cols-1">
         <button
           type="button"
           onClick={onSelect}
