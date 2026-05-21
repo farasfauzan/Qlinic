@@ -39,7 +39,7 @@ const navItems = {
   ]
 };
 
-export function DashboardLayout({ title, subtitle, children }) {
+export function DashboardLayout({ title, subtitle, headerActions, children }) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -117,26 +117,29 @@ export function DashboardLayout({ title, subtitle, children }) {
               <h1 className="text-2xl font-bold tracking-tight text-navy">{title}</h1>
               {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 sm:flex">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Online
+            <div className="flex items-center gap-4">
+              {headerActions}
+              <div className="flex items-center gap-2">
+                <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 sm:flex">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  Online
+                </div>
+                <button
+                  type="button"
+                  className="hidden rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm hover:bg-slate-50 sm:inline-flex"
+                  aria-label="Notifikasi"
+                >
+                  <Bell className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen((value) => !value)}
+                  className="rounded-xl border border-slate-200 bg-white p-2 text-navy shadow-sm lg:hidden"
+                  aria-label="Buka menu"
+                >
+                  {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </button>
               </div>
-              <button
-                type="button"
-                className="hidden rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm hover:bg-slate-50 sm:inline-flex"
-                aria-label="Notifikasi"
-              >
-                <Bell className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpen((value) => !value)}
-                className="rounded-xl border border-slate-200 bg-white p-2 text-navy shadow-sm lg:hidden"
-                aria-label="Buka menu"
-              >
-                {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
             </div>
           </div>
         </header>

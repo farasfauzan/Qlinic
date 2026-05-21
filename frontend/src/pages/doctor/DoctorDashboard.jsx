@@ -1,13 +1,11 @@
-import { CalendarClock, CheckCircle2, ClipboardPlus, Users } from "lucide-react";
+import { AlertCircle, Clock, MoreVertical, TrendingUp, Users as UsersIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "../../api/client";
 import { EmptyState, LoadingState } from "../../components/States";
-import { StatCard } from "../../components/StatCard";
-import { StatusBadge } from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
-import { DashboardLayout } from "../../layouts/DashboardLayout";
-import { formatDate, formatTime, toInputDate } from "../../utils";
+import { DoctorLayout } from "../../layouts/DoctorLayout";
+import { toInputDate } from "../../utils";
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
@@ -18,6 +16,8 @@ export default function DoctorDashboard() {
     try {
       const response = await api.get(`/dokter/me/bookings?tanggal=${toInputDate()}`);
       setBookings(response.data);
+    } catch (err) {
+      toast.error("Gagal memuat jadwal");
     } finally {
       setLoading(false);
     }
@@ -27,10 +27,8 @@ export default function DoctorDashboard() {
     loadBookings();
   }, []);
 
-  const pending = useMemo(
-    () => bookings.filter((booking) => booking.status_booking === "Pending"),
-    [bookings]
-  );
+  const pending = useMemo(() => bookings.filter((b) => b.status_booking === "Pending"), [bookings]);
+  const done = useMemo(() => bookings.filter((b) => b.status_booking === "Done"), [bookings]);
 
   async function markDone(id) {
     try {
@@ -43,55 +41,152 @@ export default function DoctorDashboard() {
   }
 
   return (
-    <DashboardLayout title={`Dashboard ${user?.nama || "Dokter"}`} subtitle="Jadwal praktik dan antrean pasien hari ini.">
-      {loading ? (
-        <LoadingState />
-      ) : (
+    <DoctorLayout>
+      <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
+        {/* Main Content Area */}
         <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <StatCard icon={Users} label="Pasien Hari Ini" value={bookings.length} hint={formatDate(toInputDate())} />
-            <StatCard icon={CalendarClock} label="Jadwal Praktik" value="Hari ini" hint={user?.jadwal_praktik || "-"} tone="navy" />
-            <StatCard icon={CheckCircle2} label="Antrean Aktif" value={pending.length} hint="Status Pending" tone="green" />
+          {/* Stats Row */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">Total Pasien Hari ini</p>
+              <h3 className="mt-1 text-3xl font-bold text-[#0a4778]">{bookings.length}</h3>
+              <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-[#0a4778]">
+                <TrendingUp className="h-3 w-3" />
+                12% lebih banyak dari kemarin
+              </p>
+            </div>
+            
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">Pasien Terlayani</p>
+              <h3 className="mt-1 text-3xl font-bold text-[#0a4778]">{done.length}</h3>
+              <div className="mt-3 flex items-center gap-2">
+                <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                  <div 
+                    className="h-1.5 rounded-full bg-[#0a4778]" 
+                    style={{ width: bookings.length ? `${(done.length / bookings.length) * 100}%` : '0%' }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">Sisa Antrean</p>
+              <h3 className="mt-1 text-3xl font-bold text-[#0a4778]">
+                {pending.length.toString().padStart(2, '0')}
+              </h3>
+              <p className="mt-2 text-[11px] font-medium text-slate-500">Hingga pukul 17:00 WIB</p>
+            </div>
           </div>
 
-          <section className="app-card rounded-2xl p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-navy">Daftar Pasien Booking</h2>
-              <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-clinical">
-                {bookings.length} pasien
-              </span>
+          {/* Jadwal Hari Ini Section */}
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-lg font-bold text-navy">Jadwal Hari Ini</h2>
+                <button className="text-sm font-semibold text-slate-400 hover:text-navy">Kelola Jadwal</button>
+              </div>
+              <button className="rounded-lg bg-[#0a4778] px-4 py-2 text-sm font-bold text-white shadow hover:bg-[#073e69]">
+                Lihat Semua Pasien
+              </button>
             </div>
-            {bookings.length ? (
-              <div className="divide-y divide-slate-100">
+
+            {loading ? (
+              <LoadingState />
+            ) : bookings.length ? (
+              <div className="space-y-4">
                 {bookings.map((booking) => (
-                  <div key={booking.id} className="flex flex-wrap items-center justify-between gap-4 py-4">
-                    <div>
-                      <p className="font-semibold text-navy">{booking.pasien_nama}</p>
-                      <p className="text-sm text-slate-500">
-                        Antrean #{booking.nomor_antrean} - {formatTime(booking.jam_slot)}
-                      </p>
+                  <div key={booking.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-100 p-4 transition hover:bg-slate-50 lg:flex-nowrap">
+                    <div className="flex flex-1 items-center gap-4">
+                      {/* Queue Number Square */}
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#0a4778] text-lg font-bold text-white">
+                        {booking.nomor_antrean}
+                      </div>
+                      <div className="w-32 sm:w-40 shrink-0">
+                        <p className="text-xs font-semibold text-slate-500">Nama Pasien</p>
+                        <p className="font-bold text-navy truncate">{booking.pasien_nama}</p>
+                      </div>
+                      <div className="hidden border-l border-slate-200 pl-4 sm:block sm:w-28 shrink-0">
+                        <p className="text-xs font-semibold text-slate-500">Waktu</p>
+                        <p className="font-bold text-navy">{booking.jam_slot.substring(0, 5)} - {(parseInt(booking.jam_slot.substring(0, 2)) + 1).toString().padStart(2, '0')}:00</p>
+                      </div>
+                      <div className="hidden border-l border-slate-200 pl-4 md:block md:w-36 shrink-0">
+                        <p className="text-xs font-semibold text-slate-500">Tipe Kunjungan</p>
+                        <div className={`mt-0.5 inline-flex rounded-md px-2 py-0.5 text-xs font-bold ${booking.status_booking === 'Done' ? 'bg-emerald-50 text-emerald-600' : 'bg-sky-50 text-[#0a4778]'}`}>
+                          {booking.status_booking === "Pending" ? "Baru / Umum" : "Selesai"}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={booking.status_booking} />
-                      <button
-                        type="button"
-                        onClick={() => markDone(booking.id)}
-                        disabled={booking.status_booking !== "Pending"}
-                        className="inline-flex items-center gap-2 rounded-lg bg-navy px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <ClipboardPlus className="h-4 w-4" />
-                        Done
+                    
+                    <div className="flex items-center gap-3">
+                      {booking.status_booking === "Pending" && (
+                         <button
+                           onClick={() => markDone(booking.id)}
+                           className="text-xs font-bold text-emerald-600 hover:underline"
+                         >
+                           Tandai Selesai
+                         </button>
+                      )}
+                      <button className="text-slate-400 hover:text-navy">
+                        <MoreVertical className="h-5 w-5" />
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <EmptyState title="Tidak ada booking hari ini" description="Antrean pasien akan tampil saat ada booking." />
+              <EmptyState title="Tidak ada jadwal hari ini" description="Jadwal antrean akan muncul di sini." />
             )}
           </section>
         </div>
-      )}
-    </DashboardLayout>
+
+        {/* Right Panel: Notifications */}
+        <aside className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col h-[calc(100vh-140px)] sticky top-[88px]">
+          <div className="border-b border-slate-200 p-5">
+            <h2 className="text-[15px] font-bold text-navy">Notifikasi & Catatan</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            
+            <div className="flex gap-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-500">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-navy">Darurat: Lab Result Ready</h4>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">Hasil lab untuk Pasien #24 (Tn. Ahmad) sudah tersedia untuk ditinjau segera.</p>
+                <p className="mt-2 text-[10px] font-medium text-slate-400">2 menit yang lalu</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sky-500">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-navy">Jadwal Berubah</h4>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">Pasien #22 membatalkan janji temu pukul 14:00. Slot sekarang tersedia.</p>
+                <p className="mt-2 text-[10px] font-medium text-slate-400">1 jam yang lalu</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0a4778]/10 text-[#0a4778]">
+                <UsersIcon className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-navy">Rapat Staf</h4>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">Pengingat: Rapat koordinasi mingguan di ruang konferensi A pukul 15:00.</p>
+                <p className="mt-2 text-[10px] font-medium text-slate-400">3 jam yang lalu</p>
+              </div>
+            </div>
+            
+          </div>
+          <div className="p-4 border-t border-slate-100">
+            <button className="w-full rounded-lg border border-[#0a4778]/20 bg-sky-50 py-2.5 text-xs font-bold text-[#0a4778] hover:bg-sky-100 transition">
+              Lihat Semua Notifikasi
+            </button>
+          </div>
+        </aside>
+      </div>
+    </DoctorLayout>
   );
 }

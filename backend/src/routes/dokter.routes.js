@@ -43,6 +43,39 @@ router.get(
   })
 );
 
+router.put(
+  "/me/jadwal",
+  authenticate,
+  authorize("dokter"),
+  asyncHandler(async (req, res) => {
+    assertRequired(req.body, ["jadwal_praktik"]);
+    const { jadwal_praktik } = req.body;
+    const trimmed = String(jadwal_praktik).trim();
+
+    if (!trimmed) {
+      throw new HttpError(400, "Jadwal praktik tidak boleh kosong");
+    }
+    if (trimmed.length > 255) {
+      throw new HttpError(400, "Jadwal praktik maksimal 255 karakter");
+    }
+
+    const [result] = await pool.query("UPDATE dokter SET jadwal_praktik = ? WHERE id = ?", [
+      trimmed,
+      req.user.id
+    ]);
+
+    if (!result.affectedRows) {
+      throw new HttpError(404, "Dokter tidak ditemukan");
+    }
+
+    res.json({
+      success: true,
+      message: "Jadwal praktik berhasil diperbarui",
+      data: { jadwal_praktik: trimmed }
+    });
+  })
+);
+
 router.get(
   "/me/bookings",
   authenticate,

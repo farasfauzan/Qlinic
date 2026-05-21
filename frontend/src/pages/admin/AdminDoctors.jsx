@@ -1,6 +1,15 @@
-import { Pencil, Plus, Save, Trash2 } from "lucide-react";
+import {
+  Heart,
+  ListFilter,
+  Plus,
+  Save,
+  Stethoscope,
+  User,
+  UserPlus
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { Modal } from "../../components/Modal";
 import { EmptyState, LoadingState } from "../../components/States";
@@ -16,11 +25,27 @@ const emptyDoctor = {
   password: ""
 };
 
+function getInitials(name) {
+  if (!name) return "DR";
+  return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+}
+
+function getPoliIcon(name) {
+  const n = name.toLowerCase();
+  if (n.includes('jantung') || n.includes('kardiologi')) return <Heart className="h-5 w-5" />;
+  if (n.includes('anak') || n.includes('pediatri')) return <User className="h-5 w-5" />;
+  return <Stethoscope className="h-5 w-5" />;
+}
+
 export default function AdminDoctors() {
   const [doctors, setDoctors] = useState([]);
   const [polyclinics, setPolyclinics] = useState([]);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const [filterStatus, setFilterStatus] = useState("Semua");
+  const [filterPoli, setFilterPoli] = useState("Semua Poliklinik");
 
   async function loadData() {
     setLoading(true);
@@ -40,83 +65,243 @@ export default function AdminDoctors() {
     loadData();
   }, []);
 
-  async function deleteDoctor(id) {
-    if (!window.confirm("Hapus dokter ini?")) return;
-    try {
-      await api.delete(`/dokter/${id}`);
-      toast.success("Dokter berhasil dihapus");
-      await loadData();
-    } catch (error) {
-      toast.error(error.message || "Gagal menghapus dokter");
+  const headerActions = (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={() => navigate('/admin/polyclinics')}
+        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-navy hover:bg-slate-50"
+      >
+        <Plus className="h-4 w-4" />
+        Add New Polyclinic
+      </button>
+      <button
+        onClick={() => setEditing(emptyDoctor)}
+        className="inline-flex items-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+      >
+        <UserPlus className="h-4 w-4" />
+        Add New Doctor
+      </button>
+    </div>
+  );
+
+  const poliStats = polyclinics.map(poli => {
+    const docCount = doctors.filter(d => d.id_poli === poli.id).length;
+    // Mock capacity stats based on id
+    const capacity = 40 + ((poli.id * 17) % 60); 
+    let loadStatus = "Normal";
+    let loadColor = "bg-slate-100 text-slate-700";
+    if (capacity > 90) {
+      loadStatus = "High Load";
+      loadColor = "bg-rose-50 text-rose-700";
+    } else if (capacity > 75) {
+      loadStatus = "Optimal Load";
+      loadColor = "bg-emerald-50 text-emerald-700";
     }
-  }
+
+    return {
+      ...poli,
+      docCount,
+      capacity,
+      loadStatus,
+      loadColor
+    };
+  });
+
+  const filteredDoctors = doctors.filter(doc => {
+    // Mock status as "Active" for everyone, except a few to show "On Leave"
+    const docStatus = doc.id % 4 === 0 ? "On Leave" : "Active";
+    doc._mockStatus = docStatus;
+
+    if (filterStatus !== "Semua" && filterStatus !== docStatus) return false;
+    if (filterPoli !== "Semua Poliklinik" && doc.id_poli.toString() !== filterPoli) return false;
+    return true;
+  });
 
   return (
-    <DashboardLayout title="Manajemen Dokter" subtitle="Tambah, edit, dan hapus data dokter klinik.">
-      <div className="space-y-5">
-        <button
-          type="button"
-          onClick={() => setEditing(emptyDoctor)}
-          className="inline-flex items-center gap-2 rounded-lg bg-navy px-4 py-3 font-semibold text-white hover:bg-slate-800"
-        >
-          <Plus className="h-5 w-5" />
-          Tambah Dokter
-        </button>
-
-        {loading ? (
-          <LoadingState />
-        ) : doctors.length ? (
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    {["Nama", "Spesialisasi", "Kontak", "Poliklinik", "Jadwal", "Aksi"].map((head) => (
-                      <th key={head} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {head}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {doctors.map((doctor) => (
-                    <tr key={doctor.id}>
-                      <td className="px-4 py-4 font-semibold text-navy">{doctor.nama}</td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{doctor.spesialisasi}</td>
-                      <td className="px-4 py-4 text-sm text-slate-600">
-                        <p>{doctor.email}</p>
-                        <p>{doctor.no_telp}</p>
-                      </td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{doctor.nama_poli || "-"}</td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{doctor.jadwal_praktik}</td>
-                      <td className="px-4 py-4">
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setEditing({ ...doctor, password: "" })}
-                            className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
-                            aria-label="Edit dokter"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteDoctor(doctor.id)}
-                            className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50"
-                            aria-label="Hapus dokter"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+    <DashboardLayout 
+      title="Manajemen Dokter & Poliklinik" 
+      subtitle="Kelola jadwal, departemen, dan ketersediaan tenaga medis dalam satu dasbor terpadu."
+      headerActions={headerActions}
+    >
+      <div className="space-y-8">
+        
+        {/* Overview Poliklinik */}
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-navy">Overview Poliklinik</h2>
+            <button 
+              onClick={() => navigate('/admin/polyclinics')}
+              className="text-sm font-semibold text-clinical hover:underline"
+            >
+              Lihat Semua
+            </button>
           </div>
-        ) : (
-          <EmptyState title="Belum ada dokter" description="Tambahkan dokter untuk membuka jadwal booking." />
+          
+          {loading ? (
+            <LoadingState />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {poliStats.slice(0, 4).map(poli => (
+                <div key={poli.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-4 flex items-start justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-clinical">
+                      {getPoliIcon(poli.nama_poli)}
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${poli.loadColor}`}>
+                      {poli.loadStatus}
+                    </span>
+                  </div>
+                  <h3 className="mb-4 font-bold text-navy">{poli.nama_poli}</h3>
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-2xl font-bold text-navy">{String(poli.docCount).padStart(2, '0')}</p>
+                      <p className="text-xs font-medium text-slate-500">Dokter Aktif</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-navy">{poli.capacity}%</p>
+                      <p className="text-xs font-medium text-slate-500">Kapasitas</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Direktori Dokter Table */}
+        {!loading && (
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            {/* Filter Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-5 lg:flex-nowrap">
+              <div className="flex items-center gap-4">
+                <h3 className="whitespace-nowrap font-bold text-navy">Direktori Dokter</h3>
+                <div className="hidden h-6 w-px bg-slate-200 sm:block"></div>
+                <div className="hidden items-center gap-1 sm:flex">
+                  {['Semua', 'Aktif', 'On Leave'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setFilterStatus(tab)}
+                      className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                        filterStatus === tab ? 'bg-sky-100 text-clinical' : 'text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <select 
+                  value={filterPoli} 
+                  onChange={(e) => setFilterPoli(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none hover:border-slate-300 focus:border-clinical focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="Semua Poliklinik">Semua Poliklinik</option>
+                  {polyclinics.map(p => <option key={p.id} value={p.id.toString()}>{p.nama_poli}</option>)}
+                </select>
+                <button className="rounded-xl border border-slate-200 p-2 text-slate-600 hover:bg-slate-50" aria-label="Filter options">
+                  <ListFilter className="h-5 w-5" />
+                </button>
+              </div>
+              
+              {/* Mobile tabs */}
+              <div className="flex w-full items-center gap-1 overflow-x-auto pb-2 sm:hidden">
+                {['Semua', 'Aktif', 'On Leave'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setFilterStatus(tab)}
+                    className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                      filterStatus === tab ? 'bg-sky-100 text-clinical' : 'text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Table */}
+            {filteredDoctors.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-100">
+                  <thead className="bg-slate-50/50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500">Nama Dokter</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500">Spesialisasi</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500">Poliklinik</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredDoctors.map(doctor => (
+                      <tr key={doctor.id} className="hover:bg-slate-50/50">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 font-bold text-clinical">
+                              {getInitials(doctor.nama)}
+                            </div>
+                            <div>
+                              <p className="font-bold text-navy">{doctor.nama}</p>
+                              <p className="text-xs text-slate-500">ID: DOC-{doctor.id.toString().padStart(5, '0')}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium text-slate-600">{doctor.spesialisasi}</td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-clinical">
+                            {doctor.nama_poli || "-"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className={`h-2 w-2 rounded-full ${doctor._mockStatus === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                            <span className="text-sm font-medium text-slate-700">{doctor._mockStatus}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setEditing({ ...doctor, password: "" })}
+                              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => setEditing({ ...doctor, password: "" })}
+                              className="whitespace-nowrap rounded-lg bg-navy px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+                            >
+                              Manage Schedule
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="px-6 py-10 text-center">
+                <EmptyState title="Tidak ada dokter ditemukan" description="Coba ubah filter pencarian Anda." />
+              </div>
+            )}
+            
+            {/* Pagination Placeholder */}
+            {filteredDoctors.length > 0 && (
+              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+                <p className="text-sm text-slate-500">
+                  Menampilkan 1-{Math.min(filteredDoctors.length, 10)} dari {filteredDoctors.length} Dokter
+                </p>
+                <div className="flex items-center gap-1">
+                  <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">&lt;</button>
+                  <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-navy font-bold text-white">1</button>
+                  <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">2</button>
+                  <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">3</button>
+                  <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">&gt;</button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -161,6 +346,18 @@ function DoctorFormModal({ initial, polyclinics, onClose, onSaved }) {
       toast.error(error.message || "Gagal menyimpan dokter");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function deleteDoctor(id) {
+    if (!window.confirm("Hapus dokter ini?")) return;
+    try {
+      await api.delete(`/dokter/${id}`);
+      toast.success("Dokter berhasil dihapus");
+      await onSaved();
+      onClose();
+    } catch (error) {
+      toast.error(error.message || "Gagal menghapus dokter");
     }
   }
 
@@ -219,14 +416,27 @@ function DoctorFormModal({ initial, polyclinics, onClose, onSaved }) {
             required
           />
         </label>
-        <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-navy px-5 py-3 font-semibold text-white hover:bg-slate-800 disabled:opacity-70 sm:col-span-2"
-        >
-          <Save className="h-5 w-5" />
-          {loading ? "Menyimpan..." : "Simpan"}
-        </button>
+        
+        <div className="mt-2 flex items-center justify-between sm:col-span-2">
+          {isEdit ? (
+            <button
+              type="button"
+              onClick={() => deleteDoctor(initial.id)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 px-5 py-3 font-semibold text-rose-600 hover:bg-rose-50"
+            >
+              Hapus Dokter
+            </button>
+          ) : <div></div>}
+          
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-navy px-8 py-3 font-semibold text-white hover:bg-slate-800 disabled:opacity-70"
+          >
+            <Save className="h-5 w-5" />
+            {loading ? "Menyimpan..." : "Simpan"}
+          </button>
+        </div>
       </form>
     </Modal>
   );

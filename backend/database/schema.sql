@@ -1,5 +1,6 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS notifikasi;
 DROP TABLE IF EXISTS resep_obat;
 DROP TABLE IF EXISTS rekam_medis;
 DROP TABLE IF EXISTS booking_antrean;
@@ -109,4 +110,23 @@ CREATE TABLE resep_obat (
   CONSTRAINT fk_resep_rekam_medis
     FOREIGN KEY (id_rekam_medis) REFERENCES rekam_medis(id)
     ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE notifikasi (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  id_pasien INT NOT NULL,
+  id_booking INT NULL,
+  jenis ENUM('booking_created', 'booking_cancelled', 'booking_done', 'rekam_medis') NOT NULL,
+  judul VARCHAR(160) NOT NULL,
+  pesan TEXT NOT NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_notif_pasien (id_pasien, is_read),
+  CONSTRAINT fk_notif_pasien
+    FOREIGN KEY (id_pasien) REFERENCES pasien(id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT fk_notif_booking
+    FOREIGN KEY (id_booking) REFERENCES booking_antrean(id)
+    ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

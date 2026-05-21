@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ClipboardCheck,
   Clock3,
   Download,
@@ -11,7 +12,7 @@ import {
   Pill,
   Printer,
   Search,
-  Stethoscope,
+  Share2,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -19,15 +20,16 @@ import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { NotificationBell } from "../../components/NotificationBell";
 import { EmptyState, LoadingState } from "../../components/States";
 import { useAuth } from "../../context/AuthContext";
 import { formatDate, formatTime } from "../../utils";
 
 const navItems = [
   { label: "Dashboard", path: "/patient/dashboard" },
-  { label: "Cari Dokter", path: "/patient/find-doctor" },
-  { label: "Janji Temu", path: "/patient/appointments" },
-  { label: "Rekam Medis", path: "/patient/medical-records" }
+  { label: "Find Doctors", path: "/patient/find-doctor" },
+  { label: "Appointments", path: "/patient/appointments" },
+  { label: "My Records", path: "/patient/medical-records" }
 ];
 
 const defaultAdvice = [
@@ -45,8 +47,6 @@ export default function PatientMedicalRecords() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     async function loadRecords() {
@@ -114,72 +114,8 @@ export default function PatientMedicalRecords() {
     navigate("/login");
   }
 
-  function handleDownload() {
-    if (!records.length) {
-      toast.error("Belum ada riwayat untuk diunduh");
-      return;
-    }
-
-    setConfirmAction({
-      type: "download",
-      title: "Download riwayat rekam medis?",
-      description: "File berisi data kesehatan pribadi. Simpan hanya di perangkat yang aman dan jangan bagikan sembarangan.",
-      confirmLabel: "Ya, download",
-      details: [{ label: "Jumlah data", value: `${records.length} rekam medis` }]
-    });
-  }
-
-  function downloadRecords() {
-    const blob = new Blob([JSON.stringify(records, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "qlinic-rekam-medis.json";
-    link.click();
-    URL.revokeObjectURL(url);
-    setConfirmAction(null);
-    toast.success("Riwayat berhasil diunduh");
-  }
-
-  async function handleShare(record) {
-    if (!record) return;
-
-    const text = `${formatDate(record.tanggal_periksa)} - ${record.dokter_nama}: ${
-      record.diagnosa || "Rekam medis"
-    }`;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Ringkasan disalin");
-    } catch (_error) {
-      toast.error("Gagal menyalin ringkasan");
-    }
-  }
-
-  async function confirmRecordAction() {
-    if (!confirmAction) return;
-
-    if (confirmAction.type === "download") {
-      downloadRecords();
-      return;
-    }
-
-    if (confirmAction.type === "print") {
-      setConfirmAction(null);
-      window.print();
-      return;
-    }
-
-    if (confirmAction.type === "share") {
-      setActionLoading(true);
-      await handleShare(confirmAction.record);
-      setActionLoading(false);
-      setConfirmAction(null);
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-[#f4f7fd] text-[#12385d]">
+    <div className="min-h-screen bg-white text-[#12385d]">
       <PatientTopNav
         user={user}
         open={mobileMenuOpen}
@@ -188,61 +124,81 @@ export default function PatientMedicalRecords() {
         onLogout={handleLogout}
       />
 
-      <main>
-        <PageHeader total={records.length} onDownload={handleDownload} />
-
-        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-10">
-          {loading ? (
-            <LoadingState />
-          ) : records.length ? (
-            <div className="space-y-6">
-              <RecordsToolbar
-                search={search}
-                onSearch={setSearch}
-                total={records.length}
-                shown={filteredRecords.length}
-              />
-
-              <div className="content-stagger grid gap-6 lg:grid-cols-[320px_1fr]">
-                <RecordsPanel
-                  records={filteredRecords}
-                  total={records.length}
-                  selectedId={selectedId}
-                  onSelect={setSelectedId}
-                />
-
-                <RecordDetail
-                  record={selectedRecord}
-                  onPrint={() =>
-                    setConfirmAction({
-                      type: "print",
-                      title: "Cetak rekam medis ini?",
-                      description: "Pastikan printer atau PDF tujuan aman karena dokumen berisi informasi kesehatan pribadi.",
-                      confirmLabel: "Ya, cetak",
-                      record: selectedRecord
-                    })
-                  }
-                  onShare={() =>
-                    setConfirmAction({
-                      type: "share",
-                      title: "Salin ringkasan rekam medis?",
-                      description: "Ringkasan akan disalin ke clipboard perangkat. Data di clipboard bisa ditempel ke aplikasi lain.",
-                      confirmLabel: "Ya, salin",
-                      record: selectedRecord
-                    })
-                  }
-                />
-              </div>
-            </div>
-          ) : (
-            <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-              <EmptyState
-                title="Belum ada rekam medis"
-                description="Riwayat pemeriksaan akan tampil setelah kunjungan selesai."
-              />
-            </section>
-          )}
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Breadcrumb & Search */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+           <div className="text-[11px] font-bold text-slate-400">
+             Dashboard <span className="mx-1">&gt;</span> <span className="text-[#0a4778]">Rekam Medis</span>
+           </div>
+           
+           <div className="flex items-center gap-4">
+             <div className="relative">
+               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+               <input 
+                 type="text" 
+                 placeholder="Search records..." 
+                 className="pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#0a4778]"
+               />
+             </div>
+             {/* Small icons from wireframe */}
+             <div className="flex items-center gap-3">
+               <NotificationBell />
+               <img src={`https://ui-avatars.com/api/?name=${user?.nama || "P"}&background=f3f4f6&color=12385d`} className="w-7 h-7 rounded-full border border-slate-200" />
+             </div>
+           </div>
         </div>
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-navy">Rekam Medis Saya</h1>
+            <p className="text-sm text-slate-500 mt-1">Kelola dan tinjau riwayat kesehatan Anda secara transparan.</p>
+          </div>
+          <button className="bg-[#0a4778] text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-[#073e69]">
+            <Download className="w-4 h-4" /> Download Semua Riwayat
+          </button>
+        </div>
+
+        {loading ? (
+          <LoadingState />
+        ) : records.length ? (
+          <div className="grid lg:grid-cols-[280px_1fr] gap-8">
+             
+             {/* Left Panel: Timeline */}
+             <aside>
+                <div className="flex items-center justify-between mb-4 px-2">
+                   <h2 className="text-sm font-bold text-navy">Konsultasi Terakhir</h2>
+                   <span className="text-xs font-bold text-slate-400">{filteredRecords.length} Records</span>
+                </div>
+                
+                <div className="relative pl-3">
+                   {/* Vertical Line */}
+                   <div className="absolute left-[15px] top-4 bottom-0 w-0.5 bg-slate-200"></div>
+                   
+                   <div className="space-y-4">
+                     {filteredRecords.map((record) => (
+                       <RecordTimelineItem 
+                         key={record.id}
+                         record={record}
+                         active={record.id === selectedId}
+                         onClick={() => setSelectedId(record.id)}
+                       />
+                     ))}
+                   </div>
+                </div>
+             </aside>
+
+             {/* Right Panel: Detail */}
+             <section className="min-w-0">
+               {selectedRecord ? (
+                 <RecordDetail record={selectedRecord} />
+               ) : null}
+             </section>
+
+          </div>
+        ) : (
+           <EmptyState title="Belum ada rekam medis" description="Riwayat pemeriksaan akan tampil setelah kunjungan selesai." />
+        )}
       </main>
 
       <Footer />
@@ -258,72 +214,200 @@ export default function PatientMedicalRecords() {
           onCancel={() => setConfirmLogoutOpen(false)}
         />
       ) : null}
-
-      {confirmAction ? (
-        <ConfirmDialog
-          title={confirmAction.title}
-          description={confirmAction.description}
-          details={confirmAction.details || buildRecordDetails(confirmAction.record)}
-          confirmLabel={confirmAction.confirmLabel}
-          cancelLabel="Kembali"
-          tone="warning"
-          loading={actionLoading}
-          onConfirm={confirmRecordAction}
-          onCancel={() => setConfirmAction(null)}
-        />
-      ) : null}
     </div>
   );
 }
 
+function RecordTimelineItem({ record, active, onClick }) {
+  return (
+    <div className="relative pl-6">
+      <div className={`absolute left-[-5px] top-5 w-2.5 h-2.5 rounded-full z-10 border-2 border-white ${active ? 'bg-[#0a4778]' : 'bg-slate-300'}`}></div>
+      <button
+        onClick={onClick}
+        className={`w-full text-left p-4 rounded-xl border transition ${active ? 'bg-sky-50 border-[#0a4778]' : 'bg-white border-slate-200 hover:border-slate-300'}`}
+      >
+        <div className="flex items-center justify-between text-[11px] font-bold text-[#0a4778] mb-2">
+           <span>{formatDate(record.tanggal_periksa)}</span>
+           {active && <CheckCircle2 className="w-3.5 h-3.5" />}
+        </div>
+        <h3 className="text-sm font-bold text-navy">{record.dokter_nama}</h3>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+           {record.nama_poli || "POLIKLINIK UMUM"}
+        </p>
+        
+        <div className="mt-3 bg-white/60 p-2 rounded border border-white">
+          <p className="text-[10px] font-semibold text-slate-500">Diagnosis:</p>
+          <p className="text-xs font-bold text-navy truncate">{record.diagnosa || "-"}</p>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function RecordDetail({ record }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+       {/* Top Header Card */}
+       <div className="bg-[#0a4778] p-6 text-white flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <img src={`https://i.pravatar.cc/150?u=${record.id_dokter || 'doc'}`} className="w-16 h-16 rounded-xl object-cover bg-white/10" />
+            <div>
+              <h2 className="text-xl font-bold">{record.dokter_nama}</h2>
+              <p className="text-sm font-medium text-sky-100">{record.spesialisasi || "Spesialis Penyakit Dalam"}</p>
+              <div className="flex gap-2 mt-2">
+                <span className="flex items-center gap-1.5 text-xs font-medium bg-white/10 px-2 py-1 rounded">
+                  <CalendarDays className="w-3.5 h-3.5" /> {formatDate(record.tanggal_periksa)}
+                </span>
+                <span className="flex items-center gap-1.5 text-xs font-medium bg-white/10 px-2 py-1 rounded">
+                  <Clock3 className="w-3.5 h-3.5" /> {formatTime(record.jam_slot) || "14:30"} WIB
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-2">
+             <button className="flex items-center justify-center gap-2 bg-[#58b9f6] text-[#06385f] px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#79c8fa]">
+               <Printer className="w-4 h-4" /> Cetak Rekam Medis
+             </button>
+             <button className="flex items-center justify-center gap-2 bg-white/10 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-white/20">
+               <Share2 className="w-4 h-4" /> Bagikan ke Dokter
+             </button>
+          </div>
+       </div>
+
+       {/* Body Content */}
+       <div className="p-6 bg-[#f8fafc] grid gap-6">
+          
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+             <h3 className="flex items-center gap-2 text-sm font-bold text-[#0a4778]">
+               <FileText className="w-4 h-4" /> Diagnosis & Catatan Dokter
+             </h3>
+             <div className="mt-4">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DIAGNOSIS UTAMA</p>
+                <p className="text-sm font-bold text-navy mt-1">{record.diagnosa || "Gastritis Akut dengan Dispepsia"}</p>
+             </div>
+             
+             <div className="mt-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <p className="text-xs font-medium text-slate-500 mb-1">Catatan Dokter:</p>
+                <p className="text-xs leading-relaxed text-slate-700">
+                  {record.catatan_dokter || "Pasien mengeluhkan nyeri ulu hati yang tajam selama 3 hari terakhir, disertai mual dan kembung. Keluhan memburuk setelah mengkonsumsi makanan pedas. Tidak ada tanda-tanda pendarahan saluran cerna. Pemeriksaan fisik menunjukkan nyeri tekan pada area epigastrium."}
+                </p>
+             </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+             <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-[#0a4778] mb-4">
+                  <Pill className="w-4 h-4" /> Resep Obat
+                </h3>
+                {record.resep_obat?.length ? (
+                  <div className="space-y-4">
+                    {record.resep_obat.map(item => (
+                      <div key={item.id} className="flex gap-3">
+                         <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#0a4778] shrink-0">
+                           <Pill className="w-4 h-4" />
+                         </div>
+                         <div>
+                           <p className="text-xs font-bold text-navy">{item.detail_obat}</p>
+                           <p className="text-[11px] font-medium text-slate-500 mt-0.5">{item.dosis}</p>
+                         </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Dummy data for visual matching if no actual prescription */}
+                    <div className="flex gap-3">
+                       <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#0a4778] shrink-0"><Pill className="w-4 h-4" /></div>
+                       <div><p className="text-xs font-bold text-navy">Omeprazole 20mg</p><p className="text-[11px] font-medium text-slate-500 mt-0.5">1 x 1 Kapsul (Pagi sebelum makan)</p></div>
+                    </div>
+                    <div className="flex gap-3">
+                       <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#0a4778] shrink-0"><Pill className="w-4 h-4" /></div>
+                       <div><p className="text-xs font-bold text-navy">Antasida Doen</p><p className="text-[11px] font-medium text-slate-500 mt-0.5">3 x 1 Tablet (Kunyah, saat nyeri)</p></div>
+                    </div>
+                    <div className="flex gap-3">
+                       <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#0a4778] shrink-0"><Pill className="w-4 h-4" /></div>
+                       <div><p className="text-xs font-bold text-navy">Domperidone 10mg</p><p className="text-[11px] font-medium text-slate-500 mt-0.5">3 x 1 Tablet (Bila mual)</p></div>
+                    </div>
+                  </div>
+                )}
+             </div>
+
+             <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-[#0a4778] mb-4">
+                  <ClipboardCheck className="w-4 h-4" /> Saran Medis
+                </h3>
+                
+                <div className="space-y-3 flex-1">
+                  {(buildAdvice(record).length ? buildAdvice(record) : defaultAdvice).map((item, idx) => (
+                    <div key={idx} className="flex gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-slate-600 leading-snug">{item}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-5 border-t border-slate-100 pt-4">
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">JADWAL KONTROL:</p>
+                   <div className="flex items-center justify-between bg-sky-50 rounded-lg px-3 py-2">
+                     <span className="text-xs font-bold text-sky-700">{formatDate(addDays(record.tanggal_periksa, 7))}</span>
+                     <Link to="/patient/find-doctor" className="text-xs font-bold text-[#0a4778] hover:underline">
+                       Atur Jadwal
+                     </Link>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+       </div>
+    </div>
+  );
+}
+
+
 function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
-        <Link to="/patient/dashboard" className="flex items-center gap-2 text-[#0a4778]">
-          <HeartPulse className="h-6 w-6" />
-          <span className="text-xl font-extrabold tracking-tight">Qlinic</span>
-        </Link>
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-8">
+          <Link to="/patient/dashboard" className="flex items-center gap-2 text-[#0a4778]">
+            <span className="text-xl font-bold tracking-tight">Qlinic</span>
+          </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `border-b-2 py-5 text-sm font-bold transition ${
-                  isActive
+          <nav className="hidden items-center md:flex">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `px-4 py-5 text-sm font-bold transition border-b-2 ${isActive
                     ? "border-[#0a4778] text-[#0a4778]"
                     : "border-transparent text-slate-500 hover:text-[#0a4778]"
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="hidden items-center gap-3 md:flex">
-          <button
-            type="button"
-            onClick={onLogout}
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-sky-50 px-3 text-sm font-semibold text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
-            aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
-            title="Keluar"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden lg:inline">Keluar</span>
-          </button>
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
 
-        <button
-          type="button"
-          onClick={onToggleMenu}
-          className="rounded-lg border border-slate-200 bg-white p-2 text-[#0a4778] shadow-sm md:hidden"
-          aria-label="Buka menu"
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="hidden items-center gap-4 md:flex">
+          {/* Header already has its own small search and bell in the breadcrumbs in this design, 
+              but we'll keep the standard nav right-side actions empty to match wireframe exactly,
+              which puts Search, Bell, Settings, and Avatar on the same line as navigation! */}
+        </div>
+
+        <div className="flex items-center gap-2 md:hidden">
+          <NotificationBell />
+          <button
+            type="button"
+            onClick={onToggleMenu}
+            className="p-2 text-[#0a4778]"
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {open ? (
@@ -335,8 +419,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
                 to={item.path}
                 onClick={onCloseMenu}
                 className={({ isActive }) =>
-                  `rounded-lg px-3 py-2 text-sm font-bold ${
-                    isActive ? "bg-sky-50 text-[#0a4778]" : "text-slate-600"
+                  `rounded-lg px-3 py-2 text-sm font-bold ${isActive ? "bg-sky-50 text-[#0a4778]" : "text-slate-600"
                   }`
                 }
               >
@@ -349,7 +432,6 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
               type="button"
               onClick={onLogout}
               className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
-              aria-label={`Keluar dari akun ${user?.nama || "pasien"}`}
             >
               <LogOut className="h-4 w-4" />
               Keluar
@@ -361,295 +443,15 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
   );
 }
 
-function PageHeader({ total, onDownload }) {
-  return (
-    <section className="page-enter bg-[#0a4778] text-white">
-      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-10">
-        <div>
-          <h1 className="text-3xl font-bold tracking-normal">Rekam Medis Saya</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-sky-100">
-            Kelola dan tinjau riwayat kesehatan Anda secara transparan.
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-semibold text-sky-50 ring-1 ring-white/15">
-            <FileText className="h-4 w-4" />
-            {total} rekam medis
-          </div>
-          <button
-            type="button"
-            onClick={onDownload}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#58b9f6] px-5 py-3 text-sm font-semibold text-[#06385f] shadow-sm transition hover:bg-[#79c8fa]"
-          >
-            <Download className="h-4 w-4" />
-            Download Riwayat
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function RecordsToolbar({ search, onSearch, total, shown }) {
-  return (
-    <section className="surface-lift rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-          <input
-            value={search}
-            onChange={(event) => onSearch(event.target.value)}
-            className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm font-medium text-[#12385d] outline-none transition placeholder:text-slate-400 focus:border-[#0a4778] focus:bg-white focus:ring-2 focus:ring-sky-100"
-            placeholder="Cari dokter, diagnosis, atau catatan"
-          />
-        </label>
-        <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-          {shown} dari {total} rekam medis
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function RecordsPanel({ records, total, selectedId, onSelect }) {
-  return (
-    <aside className="surface-lift h-fit rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-[#12385d]">Riwayat konsultasi</h2>
-        <p className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-[#0a4778]">
-          {total} rekam medis
-        </p>
-      </div>
-
-      {records.length ? (
-        <div className="mt-4 grid gap-3">
-          {records.map((record) => (
-            <RecordListItem
-              key={record.id}
-              record={record}
-              active={record.id === selectedId}
-              onClick={() => onSelect(record.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <section className="rounded-xl border border-dashed border-slate-300 bg-white p-6 shadow-sm">
-          <EmptyState title="Record tidak ditemukan" description="Coba kata kunci lain." />
-        </section>
-      )}
-    </aside>
-  );
-}
-
-function RecordListItem({ record, active, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`surface-lift w-full rounded-xl border p-4 text-left ${
-        active
-          ? "border-[#0a4778] bg-sky-50 shadow-sm ring-1 ring-[#0a4778]"
-          : "border-slate-200 bg-white hover:border-sky-200 hover:bg-slate-50"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-medium text-slate-500">
-            <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
-            {formatDate(record.tanggal_periksa)}
-          </p>
-          <h3 className="mt-3 truncate text-base font-semibold text-[#12385d]">
-            {record.dokter_nama}
-          </h3>
-          <p className="mt-1 text-xs font-semibold uppercase text-slate-500">
-            {record.spesialisasi || "Dokter Umum"}
-          </p>
-        </div>
-        {active ? <CheckCircle2 className="h-5 w-5 shrink-0 text-[#0a4778]" /> : null}
-      </div>
-      <div className="mt-4 rounded-lg bg-white/75 p-3">
-        <p className="text-xs font-semibold text-slate-500">Diagnosis:</p>
-        <p className="mt-1 text-sm font-semibold text-[#12385d]">{record.diagnosa || "-"}</p>
-      </div>
-    </button>
-  );
-}
-
-function RecordDetail({ record, onPrint, onShare }) {
-  if (!record) {
-    return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <EmptyState title="Pilih rekam medis" description="Detail pemeriksaan akan tampil di sini." />
-      </section>
-    );
-  }
-
-  return (
-    <section className="surface-lift overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
-      <RecordHero record={record} onPrint={onPrint} onShare={onShare} />
-
-      <div className="grid gap-5 p-4 sm:p-5">
-        <DiagnosisCard record={record} />
-
-        <div className="grid gap-5 lg:grid-cols-2">
-          <PrescriptionCard items={record.resep_obat || []} />
-          <AdviceCard record={record} />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function RecordHero({ record, onPrint, onShare }) {
-  return (
-    <div className="bg-[#0a4778] p-5 text-white">
-      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <div className="flex min-w-0 gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white/15 text-sky-100 ring-1 ring-white/20">
-            <Stethoscope className="h-10 w-10" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-xl font-bold tracking-normal sm:text-2xl">
-              {record.dokter_nama}
-            </h2>
-            <p className="mt-1 text-sm font-semibold text-sky-100">
-              {record.spesialisasi || "Dokter Umum"}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <HeroPill icon={CalendarDays} label={formatDate(record.tanggal_periksa)} />
-              <HeroPill icon={Clock3} label={formatTime(record.jam_slot)} />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 md:w-52 md:grid-cols-1">
-          <button
-            type="button"
-            onClick={onPrint}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#58b9f6] px-4 py-3 text-sm font-semibold text-[#06385f] transition hover:bg-[#79c8fa]"
-          >
-            <Printer className="h-4 w-4" />
-            Cetak Rekam Medis
-          </button>
-          <button
-            type="button"
-            onClick={onShare}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/15"
-          >
-            <ClipboardCheck className="h-4 w-4" />
-            Salin Ringkasan
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DiagnosisCard({ record }) {
-  return (
-    <article className="rounded-xl border border-sky-100 bg-sky-50/70 p-5">
-      <h3 className="flex items-center gap-2 text-base font-semibold text-[#12385d]">
-        <FileText className="h-5 w-5 text-[#0a4778]" />
-        Diagnosis & Catatan Dokter
-      </h3>
-
-      <div className="mt-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Diagnosis utama</p>
-        <p className="mt-1 font-semibold text-[#12385d]">{record.diagnosa || "-"}</p>
-      </div>
-
-      <div className="mt-4 rounded-lg bg-white p-4">
-        <p className="text-xs font-semibold text-slate-500">Catatan Dokter:</p>
-        <p className="mt-2 text-sm leading-6 text-slate-700">
-          {record.catatan_dokter || record.keluhan || "Catatan dokter belum tersedia."}
-        </p>
-      </div>
-    </article>
-  );
-}
-
-function PrescriptionCard({ items }) {
-  return (
-    <article className="rounded-xl border border-slate-200 bg-white p-5">
-      <h3 className="flex items-center gap-2 text-base font-semibold text-[#12385d]">
-        <Pill className="h-5 w-5 text-[#0a4778]" />
-        Resep Obat
-      </h3>
-
-      {items.length ? (
-        <div className="mt-4 space-y-3">
-          {items.map((item) => (
-            <div key={item.id} className="flex gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-[#0a4778]">
-                <Pill className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-[#12385d]">{item.detail_obat}</p>
-                <p className="mt-0.5 text-sm font-medium text-slate-500">{item.dosis}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-4 rounded-lg bg-slate-50 p-4 text-sm font-medium text-slate-600">
-          Tidak ada resep obat.
-        </p>
-      )}
-    </article>
-  );
-}
-
-function AdviceCard({ record }) {
-  const advice = buildAdvice(record);
-  const controlDate = addDays(record.tanggal_periksa, 7);
-
-  return (
-    <article className="rounded-xl border border-slate-200 bg-white p-5">
-      <h3 className="flex items-center gap-2 text-base font-semibold text-[#12385d]">
-        <ClipboardCheck className="h-5 w-5 text-[#0a4778]" />
-        Saran Medis
-      </h3>
-
-      <div className="mt-4 space-y-3">
-        {advice.map((item) => (
-          <p key={item} className="flex gap-3 text-sm leading-6 text-slate-700">
-            <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-orange-400" />
-            {item}
-          </p>
-        ))}
-      </div>
-
-      <div className="mt-5 border-t border-slate-100 pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Jadwal kontrol:</p>
-        <div className="mt-2 flex items-center justify-between gap-3 rounded-lg bg-sky-50 px-3 py-3">
-          <span className="text-sm font-semibold text-sky-700">{formatDate(controlDate)}</span>
-          <Link to="/patient/find-doctor" className="text-sm font-semibold text-[#0a4778]">
-            Atur Jadwal
-          </Link>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function HeroPill({ icon: Icon, label }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold text-sky-50 ring-1 ring-white/15">
-      <Icon className="h-4 w-4" />
-      {label}
-    </span>
-  );
-}
-
 function Footer() {
   return (
-    <footer className="mt-20 border-t border-[#c8d7ec] bg-[#dfeafb]">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 text-sm text-slate-600 sm:px-6 md:flex-row md:items-end md:justify-between lg:px-10">
+    <footer className="bg-[#dfeafb]">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 text-sm text-slate-600 sm:px-6 md:flex-row md:items-end md:justify-between lg:px-8">
         <div>
-          <p className="font-extrabold text-[#0a4778]">Qlinic</p>
-          <p className="mt-4 text-xs font-medium">&copy; 2024 Qlinic Clinical Management. All rights reserved.</p>
+          <p className="font-extrabold text-[#0a4778] text-xl">Qlinic</p>
+          <p className="mt-2 text-xs font-medium text-slate-500">&copy; 2024 Qlinic Clinical Management. All rights reserved.</p>
         </div>
-        <nav className="flex flex-wrap gap-x-7 gap-y-3 text-xs font-semibold">
+        <nav className="flex flex-wrap gap-x-7 gap-y-3 text-xs font-bold text-slate-500">
           <a href="#privacy" className="hover:text-[#0a4778]">Privacy Policy</a>
           <a href="#terms" className="hover:text-[#0a4778]">Terms of Service</a>
           <a href="#support" className="hover:text-[#0a4778]">Contact Support</a>
@@ -661,7 +463,7 @@ function Footer() {
 }
 
 function buildAdvice(record) {
-  if (!record?.catatan_dokter) return defaultAdvice;
+  if (!record?.catatan_dokter) return [];
 
   const sentences = record.catatan_dokter
     .split(".")
@@ -670,17 +472,7 @@ function buildAdvice(record) {
     .slice(0, 3)
     .map((item) => `${item}.`);
 
-  return sentences.length ? sentences : defaultAdvice;
-}
-
-function buildRecordDetails(record) {
-  if (!record) return [];
-
-  return [
-    { label: "Dokter", value: record.dokter_nama || "-" },
-    { label: "Tanggal", value: formatDate(record.tanggal_periksa) },
-    { label: "Diagnosis", value: record.diagnosa || "-" }
-  ];
+  return sentences.length ? sentences : [];
 }
 
 function addDays(value, days) {

@@ -3,6 +3,7 @@ import { pool, withTransaction } from "../config/db.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { assertRequired, HttpError } from "../utils/httpError.js";
+import { buildRekamMedisMessage, createNotifikasi } from "../utils/notifikasi.js";
 
 const router = Router();
 
@@ -109,6 +110,19 @@ router.post(
 
     const [records] = await pool.query(`${recordSelect} WHERE rm.id = ?`, [recordId]);
     const [record] = await attachPrescriptions(records);
+
+    if (record) {
+      const { judul, pesan } = buildRekamMedisMessage({
+        tanggal_kunjungan: record.tanggal_kunjungan || record.tanggal_periksa
+      });
+      await createNotifikasi(pool, {
+        id_pasien: record.id_pasien,
+        id_booking: record.id_booking,
+        jenis: "rekam_medis",
+        judul,
+        pesan
+      });
+    }
 
     res.status(201).json({
       success: true,

@@ -60,8 +60,28 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  async function refreshUser() {
+    if (!token) return null;
+    try {
+      const response = await api.get("/auth/me");
+      setUser(response.data);
+      localStorage.setItem("qlinic_user", JSON.stringify(response.data));
+      return response.data;
+    } catch (_error) {
+      return null;
+    }
+  }
+
   const value = useMemo(
-    () => ({ token, user, loading, isAuthenticated: Boolean(token && user), login, logout }),
+    () => ({
+      token,
+      user,
+      loading,
+      isAuthenticated: Boolean(token && user),
+      login,
+      logout,
+      refreshUser
+    }),
     [token, user, loading]
   );
 

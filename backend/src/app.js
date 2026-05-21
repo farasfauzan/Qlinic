@@ -6,6 +6,7 @@ import { errorHandler, notFound } from "./middleware/errorHandler.js";
 import authRoutes from "./routes/auth.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import dokterRoutes from "./routes/dokter.routes.js";
+import notifikasiRoutes from "./routes/notifikasi.routes.js";
 import pasienRoutes from "./routes/pasien.routes.js";
 import poliklinikRoutes from "./routes/poliklinik.routes.js";
 import rekamMedisRoutes from "./routes/rekamMedis.routes.js";
@@ -32,6 +33,7 @@ app.use("/api/poliklinik", poliklinikRoutes);
 app.use("/api/booking", bookingRoutes);
 app.use("/api/rekam-medis", rekamMedisRoutes);
 app.use("/api/report", reportRoutes);
+app.use("/api/notifikasi", notifikasiRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

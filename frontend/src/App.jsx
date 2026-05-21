@@ -16,6 +16,7 @@ import PatientDashboard from "./pages/patient/PatientDashboard";
 import PatientFindDoctor from "./pages/patient/PatientFindDoctor";
 import PatientMedicalRecords from "./pages/patient/PatientMedicalRecords";
 import Register from "./pages/Register";
+import { DoctorLayout } from "./layouts/DoctorLayout";
 
 export default function App() {
   return (
@@ -35,6 +36,8 @@ export default function App() {
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
         <Route path="/doctor/schedule" element={<DoctorSchedule />} />
         <Route path="/doctor/patients" element={<DoctorPatients />} />
+        <Route path="/doctor/settings" element={<DoctorLayout title="Settings"><div className="p-8 text-center text-slate-500 mt-20 font-bold bg-white rounded-xl border border-slate-200">Fitur Settings akan segera hadir.</div></DoctorLayout>} />
+        <Route path="/doctor/help" element={<DoctorLayout title="Help"><div className="p-8 text-center text-slate-500 mt-20 font-bold bg-white rounded-xl border border-slate-200">Fitur Help akan segera hadir.</div></DoctorLayout>} />
       </Route>
 
       <Route element={<ProtectedRoute roles={["admin"]} />}>

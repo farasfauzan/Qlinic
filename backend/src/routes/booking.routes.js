@@ -3,6 +3,12 @@ import { pool, withTransaction } from "../config/db.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { assertRequired, HttpError } from "../utils/httpError.js";
+import {
+  buildBookingCancelledMessage,
+  buildBookingCreatedMessage,
+  buildBookingDoneMessage,
+  createNotifikasi
+} from "../utils/notifikasi.js";
 
 const router = Router();
 const allowedStatuses = ["Pending", "Done", "Cancelled"];
@@ -76,6 +82,16 @@ router.post(
     });
 
     const data = await getBookingById(bookingId);
+
+    const { judul, pesan } = buildBookingCreatedMessage(data);
+    await createNotifikasi(pool, {
+      id_pasien: data.id_pasien,
+      id_booking: data.id,
+      jenis: "booking_created",
+      judul,
+      pesan
+    });
+
     res.status(201).json({
       success: true,
       message: "Booking berhasil dibuat",
@@ -175,6 +191,26 @@ router.put(
       throw new HttpError(404, "Booking tidak ditemukan");
     }
 
+    if (status_booking === "Done") {
+      const { judul, pesan } = buildBookingDoneMessage(booking);
+      await createNotifikasi(pool, {
+        id_pasien: booking.id_pasien,
+        id_booking: booking.id,
+        jenis: "booking_done",
+        judul,
+        pesan
+      });
+    } else if (status_booking === "Cancelled") {
+      const { judul, pesan } = buildBookingCancelledMessage(booking);
+      await createNotifikasi(pool, {
+        id_pasien: booking.id_pasien,
+        id_booking: booking.id,
+        jenis: "booking_cancelled",
+        judul,
+        pesan
+      });
+    }
+
     res.json({ success: true, message: "Status booking berhasil diperbarui" });
   })
 );
@@ -200,6 +236,15 @@ router.put(
     await pool.query("UPDATE booking_antrean SET status_booking = 'Cancelled' WHERE id = ?", [
       req.params.id
     ]);
+
+    const { judul, pesan } = buildBookingCancelledMessage(booking);
+    await createNotifikasi(pool, {
+      id_pasien: booking.id_pasien,
+      id_booking: booking.id,
+      jenis: "booking_cancelled",
+      judul,
+      pesan
+    });
 
     res.json({ success: true, message: "Booking berhasil dibatalkan" });
   })

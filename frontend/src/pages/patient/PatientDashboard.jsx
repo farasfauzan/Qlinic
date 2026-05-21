@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { NotificationBell } from "../../components/NotificationBell";
 import { EmptyState, LoadingState } from "../../components/States";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
@@ -151,10 +152,9 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `border-b-2 py-5 text-sm font-bold transition ${
-                  isActive
-                    ? "border-[#0a4778] text-[#0a4778]"
-                    : "border-transparent text-slate-500 hover:text-[#0a4778]"
+                `border-b-2 py-5 text-sm font-bold transition ${isActive
+                  ? "border-[#0a4778] text-[#0a4778]"
+                  : "border-transparent text-slate-500 hover:text-[#0a4778]"
                 }`
               }
             >
@@ -164,6 +164,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          <NotificationBell />
           <button
             type="button"
             onClick={onLogout}
@@ -176,14 +177,17 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={onToggleMenu}
-          className="rounded-lg border border-slate-200 bg-white p-2 text-[#0a4778] shadow-sm md:hidden"
-          aria-label="Buka menu"
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <NotificationBell />
+          <button
+            type="button"
+            onClick={onToggleMenu}
+            className="rounded-lg border border-slate-200 bg-white p-2 text-[#0a4778] shadow-sm"
+            aria-label="Buka menu"
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {open ? (
@@ -195,8 +199,7 @@ function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
                 to={item.path}
                 onClick={onCloseMenu}
                 className={({ isActive }) =>
-                  `rounded-lg px-3 py-2 text-sm font-bold ${
-                    isActive ? "bg-sky-50 text-[#0a4778]" : "text-slate-600"
+                  `rounded-lg px-3 py-2 text-sm font-bold ${isActive ? "bg-sky-50 text-[#0a4778]" : "text-slate-600"
                   }`
                 }
               >
