@@ -11,15 +11,21 @@ const jenisLabel = {
     rekam_medis: "Rekam medis"
 };
 
-export function NotificationBell() {
-    const [items, setItems] = useState([]);
-    const [unread, setUnread] = useState(0);
+export function NotificationBell({ fallbackItems = [] }) {
+    const hasFallback = fallbackItems.length > 0;
+    const [items, setItems] = useState(fallbackItems);
+    const [unread, setUnread] = useState(fallbackItems.filter((item) => !item.is_read).length);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const [marking, setMarking] = useState(false);
     const containerRef = useRef(null);
 
     async function load() {
+        if (hasFallback) {
+            setItems((current) => (current.length ? current : fallbackItems));
+            setUnread((current) => current);
+            return;
+        }
         try {
             const response = await api.get("/notifikasi");
             setItems(response.data || []);
@@ -33,7 +39,7 @@ export function NotificationBell() {
         load();
         const interval = setInterval(load, POLL_INTERVAL_MS);
         return () => clearInterval(interval);
-    }, []);
+    }, [hasFallback]);
 
     useEffect(() => {
         function onClickOutside(event) {
@@ -63,6 +69,13 @@ export function NotificationBell() {
 
     async function markOneRead(item) {
         if (item.is_read) return;
+        if (hasFallback) {
+            setItems((prev) =>
+                prev.map((row) => (row.id === item.id ? { ...row, is_read: 1 } : row))
+            );
+            setUnread((value) => Math.max(0, value - 1));
+            return;
+        }
         try {
             await api.put(`/notifikasi/${item.id}/read`);
             setItems((prev) =>
@@ -77,6 +90,12 @@ export function NotificationBell() {
     async function markAllRead() {
         if (!unread || marking) return;
         setMarking(true);
+        if (hasFallback) {
+            setItems((prev) => prev.map((row) => ({ ...row, is_read: 1 })));
+            setUnread(0);
+            setMarking(false);
+            return;
+        }
         try {
             await api.put("/notifikasi/read-all");
             setItems((prev) => prev.map((row) => ({ ...row, is_read: 1 })));

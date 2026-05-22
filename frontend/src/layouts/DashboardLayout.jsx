@@ -1,11 +1,11 @@
 import {
   Activity,
   BarChart3,
-  Bell,
   CalendarDays,
   ClipboardList,
   HeartPulse,
   Hospital,
+  KeyRound,
   LogOut,
   Menu,
   Search,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { NotificationBell } from "../components/NotificationBell";
 import { useAuth } from "../context/AuthContext";
 
 const navItems = {
@@ -33,11 +34,35 @@ const navItems = {
     { label: "Dashboard", path: "/admin/dashboard", icon: Activity },
     { label: "Manajemen Dokter", path: "/admin/doctors", icon: Stethoscope },
     { label: "Manajemen Pasien", path: "/admin/patients", icon: Users },
+    { label: "Permintaan Reset", path: "/admin/password-resets", icon: KeyRound },
     { label: "Poliklinik", path: "/admin/polyclinics", icon: Hospital },
     { label: "Booking/Antrean", path: "/admin/bookings", icon: HeartPulse },
     { label: "Report & Analytics", path: "/admin/reports", icon: BarChart3 }
   ]
 };
+
+const adminNotifications = [
+  {
+    id: "admin-queue",
+    judul: "Antrean poli penyakit dalam tinggi",
+    pesan: "Jumlah antrean sudah melewati ambang normal. Cek Booking/Antrean untuk penyesuaian.",
+    jenis: "booking_created",
+    is_read: 0,
+    created_at: new Date(Date.now() - 18 * 60000).toISOString()
+  },
+  {
+    id: "admin-report",
+    judul: "Laporan harian siap dilihat",
+    pesan: "Ringkasan operasional hari ini sudah tersedia di Report & Analytics.",
+    jenis: "rekam_medis",
+    is_read: 0,
+    created_at: new Date(Date.now() - 2 * 60 * 60000).toISOString()
+  }
+];
+
+function shouldKeepSidebarExpanded() {
+  return Number(sessionStorage.getItem("qlinic_sidebar_expanded_until") || 0) > Date.now();
+}
 
 export function DashboardLayout({ title, subtitle, headerActions, children }) {
   const { user, logout } = useAuth();
@@ -50,17 +75,23 @@ export function DashboardLayout({ title, subtitle, headerActions, children }) {
     navigate("/login");
   }
 
+  function keepExpandedDuringNavigation() {
+    sessionStorage.setItem("qlinic_sidebar_expanded_until", String(Date.now() + 900));
+  }
+
+  const popNav = user?.role === "admin" || user?.role === "dokter";
+
   const sidebar = (
-    <aside className="flex h-full w-72 flex-col border-r border-white/10 bg-[linear-gradient(180deg,#07172c_0%,#0b1f3a_58%,#12395f_100%)] text-white shadow-nav">
+    <aside className="portal-sidebar group/sidebar flex h-full w-72 flex-col overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,#07172c_0%,#0b1f3a_58%,#12395f_100%)] text-white shadow-nav transition-all duration-300 ease-out">
       <div className="px-5 py-5">
-        <div className="flex items-center gap-3 rounded-2xl bg-white/10 p-3 ring-1 ring-white/10">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-clinical text-white shadow-lg shadow-sky-950/20">
-          <HeartPulse className="h-6 w-6" />
-        </div>
-        <div>
-          <p className="text-xl font-bold">Qlinic</p>
-          <p className="text-xs text-sky-100">Clinic queue system</p>
-        </div>
+        <div className="sidebar-logo-card flex items-center gap-3 rounded-2xl bg-white/10 p-3 ring-1 ring-white/10 transition-all duration-300">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-clinical text-white shadow-lg shadow-sky-950/20">
+            <HeartPulse className="h-6 w-6" />
+          </div>
+          <div className="sidebar-text overflow-hidden whitespace-nowrap transition-all duration-300">
+            <p className="text-xl font-bold">Qlinic</p>
+            <p className="text-xs text-sky-100">Clinic queue system</p>
+          </div>
         </div>
       </div>
       <nav className="flex-1 space-y-1.5 px-4">
@@ -68,40 +99,59 @@ export function DashboardLayout({ title, subtitle, headerActions, children }) {
           <NavLink
             key={item.path}
             to={item.path}
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              keepExpandedDuringNavigation();
+            }}
             className={({ isActive }) =>
-              `group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
+              `sidebar-nav-item group flex items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-sm font-semibold transition duration-200 ${
                 isActive
                   ? "bg-white text-navy shadow-lg shadow-sky-950/10"
                   : "text-sky-50 hover:bg-white/10 hover:text-white"
-              }`
+              } ${popNav ? "hover:shadow-lg hover:shadow-sky-950/10" : ""}`
             }
           >
             <item.icon className="h-5 w-5 shrink-0" />
-            {item.label}
+            <span className="sidebar-text overflow-hidden whitespace-nowrap transition-all duration-300">
+              {item.label}
+            </span>
           </NavLink>
         ))}
       </nav>
       <div className="border-t border-white/10 p-4">
-        <div className="mb-3 rounded-xl bg-white/10 p-3 ring-1 ring-white/10">
-          <p className="text-sm font-semibold">{user?.nama}</p>
-          <p className="text-xs capitalize text-sky-100">{user?.role}</p>
+        <div className="sidebar-profile mb-3 overflow-hidden rounded-xl bg-white/10 p-3 ring-1 ring-white/10 transition-all duration-300 lg:px-2 lg:group-hover/sidebar:px-3">
+          <p className="sidebar-text overflow-hidden whitespace-nowrap text-sm font-semibold transition-all duration-300">
+            {user?.nama}
+          </p>
+          <p className="sidebar-text overflow-hidden whitespace-nowrap text-xs capitalize text-sky-100 transition-all duration-300">
+            {user?.role}
+          </p>
         </div>
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-navy hover:bg-sky-50"
+          className="flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-navy transition duration-200 hover:-translate-y-0.5 hover:bg-sky-50 lg:px-0 lg:group-hover/sidebar:px-4"
         >
           <LogOut className="h-4 w-4" />
-          Logout
+          <span className="sidebar-text overflow-hidden whitespace-nowrap transition-all duration-300">
+            Logout
+          </span>
         </button>
       </div>
     </aside>
   );
 
   return (
-    <div className="min-h-screen bg-cloud">
-      <div className="fixed inset-y-0 left-0 z-30 hidden lg:block">{sidebar}</div>
+    <div className="min-h-screen bg-cloud lg:flex">
+      <div
+        className={`portal-sidebar-shell hidden shrink-0 lg:sticky lg:top-0 lg:block lg:h-screen ${shouldKeepSidebarExpanded() ? "is-expanded" : ""}`}
+        onMouseLeave={(event) => {
+          sessionStorage.removeItem("qlinic_sidebar_expanded_until");
+          event.currentTarget.classList.remove("is-expanded");
+        }}
+      >
+        {sidebar}
+      </div>
       {open ? (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-navy/50" onClick={() => setOpen(false)} />
@@ -109,7 +159,7 @@ export function DashboardLayout({ title, subtitle, headerActions, children }) {
         </div>
       ) : null}
 
-      <main className="lg:pl-72">
+      <main className="portal-main min-w-0 flex-1">
         <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <div>
@@ -124,13 +174,9 @@ export function DashboardLayout({ title, subtitle, headerActions, children }) {
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   Online
                 </div>
-                <button
-                  type="button"
-                  className="hidden rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm hover:bg-slate-50 sm:inline-flex"
-                  aria-label="Notifikasi"
-                >
-                  <Bell className="h-5 w-5" />
-                </button>
+                <div className="hidden sm:block">
+                  <NotificationBell fallbackItems={user?.role === "admin" ? adminNotifications : []} />
+                </div>
                 <button
                   type="button"
                   onClick={() => setOpen((value) => !value)}

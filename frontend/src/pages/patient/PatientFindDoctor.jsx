@@ -2,37 +2,24 @@ import {
   Briefcase,
   CalendarDays,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Info as InfoCircle,
-  LogOut,
   MapPin,
-  Menu,
   Search,
-  Star,
-  X
+  Star
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Link, NavLink, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Modal } from "../../components/Modal";
-import { NotificationBell } from "../../components/NotificationBell";
 import { EmptyState, LoadingState } from "../../components/States";
 import { StatusBadge } from "../../components/StatusBadge";
-import { useAuth } from "../../context/AuthContext";
+import { PatientLayout } from "../../layouts/PatientLayout";
 import { formatDate, formatTime, timeSlots } from "../../utils";
 
-const navItems = [
-  { label: "Dashboard", path: "/patient/dashboard" },
-  { label: "Find Doctors", path: "/patient/find-doctor" },
-  { label: "Appointments", path: "/patient/appointments" },
-  { label: "My Records", path: "/patient/medical-records" }
-];
-
 const availabilityOptions = ["Hari Ini", "Besok", "Minggu Ini"];
+const PAGE_SIZE = 4;
 const sortOptions = [
   { label: "Direkomendasikan", value: "recommended" },
   { label: "Rating tertinggi", value: "rating" },
@@ -41,8 +28,6 @@ const sortOptions = [
 ];
 
 export default function PatientFindDoctor() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [doctors, setDoctors] = useState([]);
   const [polyclinics, setPolyclinics] = useState([]);
   const [search, setSearch] = useState("");
@@ -50,10 +35,9 @@ export default function PatientFindDoctor() {
   const [availability, setAvailability] = useState("Hari Ini");
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState("recommended");
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -98,31 +82,27 @@ export default function PatientFindDoctor() {
         return b.ui.score - a.ui.score;
       });
   }, [availability, enrichedDoctors, minRating, search, selectedPolis, sortBy]);
+  const totalPages = Math.max(1, Math.ceil(filteredDoctors.length / PAGE_SIZE));
+  const visibleDoctors = filteredDoctors.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
-  function handleLogout() {
-    setConfirmLogoutOpen(true);
-  }
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [availability, minRating, search, selectedPolis, sortBy]);
 
-  function confirmLogout() {
-    logout();
-    navigate("/login");
-  }
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   return (
-    <div className="min-h-screen bg-[#f4f7fd] text-[#12385d]">
-      <PatientTopNav
-        user={user}
-        open={mobileMenuOpen}
-        onToggleMenu={() => setMobileMenuOpen((value) => !value)}
-        onCloseMenu={() => setMobileMenuOpen(false)}
-        onLogout={handleLogout}
-      />
-
-      <main className="bg-white min-h-screen">
-        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <PatientLayout>
+      <main className="min-h-screen bg-[#f4f7fd]">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
           
           {/* Header Search Bar */}
-          <div className="flex flex-col sm:flex-row shadow-sm border border-slate-200 rounded-full bg-white mb-8 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
+          <div className="page-enter mb-8 flex flex-col divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white shadow-sm sm:flex-row sm:divide-x sm:divide-y-0">
              <div className="flex-1 flex items-center px-4 py-2">
                <Search className="h-5 w-5 text-slate-400 shrink-0" />
                <input
@@ -148,7 +128,7 @@ export default function PatientFindDoctor() {
              </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-between items-end mb-6 border-b border-slate-100 pb-4">
+          <div className="mb-6 flex flex-col items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-end">
              <div>
                <h1 className="text-2xl font-bold text-navy">Temukan Dokter</h1>
                <p className="text-sm text-slate-500 mt-1">Menampilkan {filteredDoctors.length}+ dokter terbaik untuk Anda</p>
@@ -181,9 +161,9 @@ export default function PatientFindDoctor() {
             <section className="min-w-0">
               {loading ? (
                 <LoadingState />
-              ) : filteredDoctors.length ? (
+              ) : visibleDoctors.length ? (
                 <div className="grid gap-4 xl:grid-cols-2">
-                  {filteredDoctors.map((doctor, index) => (
+                  {visibleDoctors.map((doctor, index) => (
                     <DoctorCard
                       key={doctor.id}
                       doctor={doctor}
@@ -196,129 +176,56 @@ export default function PatientFindDoctor() {
                 <EmptyState title="Dokter tidak ditemukan" description="Coba ubah kata kunci atau filter." />
               )}
 
-              {/* Pagination (Visual) */}
-              <div className="flex items-center justify-center gap-2 mt-12 mb-8">
-                <button className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50">
+              {/* Pagination */}
+              {filteredDoctors.length ? (
+              <div className="mb-8 mt-8 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <p className="text-sm font-medium text-slate-500">
+                  Menampilkan {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredDoctors.length)} dari {filteredDoctors.length} dokter
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={currentPage === 1}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button className="w-8 h-8 rounded-full bg-[#0a4778] text-white text-sm font-bold">1</button>
-                <button className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50">2</button>
-                <button className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50">3</button>
-                <span className="text-slate-400 px-1">...</span>
-                <button className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50">12</button>
-                <button className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50">
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => setCurrentPage(page)}
+                    className={`h-8 w-8 rounded-full text-sm font-bold ${
+                      currentPage === page
+                        ? "bg-[#0a4778] text-white"
+                        : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={currentPage === totalPages}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
                   <ChevronRight className="w-4 h-4" />
                 </button>
+                </div>
               </div>
+              ) : null}
 
             </section>
           </div>
         </div>
       </main>
 
-      <Footer />
-
       {selectedDoctor ? (
         <BookingModal doctor={selectedDoctor} onClose={() => setSelectedDoctor(null)} />
       ) : null}
-
-      {confirmLogoutOpen ? (
-        <ConfirmDialog
-          title="Keluar dari akun?"
-          description="Sesi Anda akan ditutup. Anda perlu login kembali untuk melihat janji temu dan rekam medis."
-          confirmLabel="Ya, keluar"
-          cancelLabel="Tetap di halaman"
-          tone="warning"
-          onConfirm={confirmLogout}
-          onCancel={() => setConfirmLogoutOpen(false)}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function PatientTopNav({ user, open, onToggleMenu, onCloseMenu, onLogout }) {
-  return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-8">
-          <Link to="/patient/dashboard" className="flex items-center gap-2 text-[#0a4778]">
-            <span className="text-xl font-bold tracking-tight">Qlinic</span>
-          </Link>
-
-          <nav className="hidden items-center md:flex">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `px-4 py-5 text-sm font-bold transition border-b-2 ${isActive
-                    ? "border-[#0a4778] text-[#0a4778]"
-                    : "border-transparent text-slate-500 hover:text-[#0a4778]"
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        <div className="hidden items-center gap-4 md:flex">
-          <NotificationBell />
-          <button className="text-slate-400 hover:text-navy">
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-          </button>
-          <button
-             className="bg-[#0a4778] text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-[#073e69]"
-          >
-             Book Appointment
-          </button>
-          <img src={`https://ui-avatars.com/api/?name=${user?.nama || "P"}&background=f3f4f6&color=12385d`} className="w-8 h-8 rounded-full border border-slate-200 cursor-pointer" onClick={onLogout} title="Logout" />
-        </div>
-
-        <div className="flex items-center gap-2 md:hidden">
-          <NotificationBell />
-          <button
-            type="button"
-            onClick={onToggleMenu}
-            className="p-2 text-[#0a4778]"
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </div>
-
-      {open ? (
-        <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg md:hidden">
-          <nav className="grid gap-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={onCloseMenu}
-                className={({ isActive }) =>
-                  `rounded-lg px-3 py-2 text-sm font-bold ${isActive ? "bg-sky-50 text-[#0a4778]" : "text-slate-600"
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="mt-4 border-t border-slate-100 pt-4">
-            <button
-              type="button"
-              onClick={onLogout}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
-            >
-              <LogOut className="h-4 w-4" />
-              Keluar
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </header>
+    </PatientLayout>
   );
 }
 
@@ -613,25 +520,6 @@ function BookingModal({ doctor, onClose }) {
   );
 }
 
-function Footer() {
-  return (
-    <footer className="bg-[#dfeafb]">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 text-sm text-slate-600 sm:px-6 md:flex-row md:items-end md:justify-between lg:px-8">
-        <div>
-          <p className="font-extrabold text-[#0a4778] text-xl">Qlinic</p>
-          <p className="mt-2 text-xs font-medium text-slate-500">&copy; 2024 Qlinic Clinical Management. All rights reserved.</p>
-        </div>
-        <nav className="flex flex-wrap gap-x-7 gap-y-3 text-xs font-bold text-slate-500">
-          <a href="#privacy" className="hover:text-[#0a4778]">Privacy Policy</a>
-          <a href="#terms" className="hover:text-[#0a4778]">Terms of Service</a>
-          <a href="#support" className="hover:text-[#0a4778]">Contact Support</a>
-          <a href="#locations" className="hover:text-[#0a4778]">Clinic Locations</a>
-        </nav>
-      </div>
-    </footer>
-  );
-}
-
 function FilterGroup({ title, children }) {
   return (
     <div className="border-t border-slate-200/60 pt-5 mt-5 first:border-0 first:pt-0 first:mt-0">
@@ -643,12 +531,12 @@ function FilterGroup({ title, children }) {
 
 function FilterCheckbox({ checked, label, onChange }) {
   return (
-    <label className="flex items-center gap-3 cursor-pointer group">
+    <button type="button" onClick={onChange} className="flex items-center gap-3 text-left cursor-pointer group">
       <div className={`w-4 h-4 rounded border flex items-center justify-center transition ${checked ? "bg-[#0a4778] border-[#0a4778] text-white" : "border-slate-300 bg-white"}`}>
          {checked && <Check className="w-3 h-3" />}
       </div>
       <span className="text-sm font-medium text-slate-600 group-hover:text-navy">{label}</span>
-    </label>
+    </button>
   );
 }
 

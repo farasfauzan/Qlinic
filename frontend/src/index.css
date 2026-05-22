@@ -125,6 +125,123 @@ textarea {
   transform: translateY(-2px);
 }
 
+@media (min-width: 1024px) {
+  .portal-sidebar-shell {
+    width: 5rem;
+    z-index: 30;
+  }
+
+  .portal-sidebar {
+    width: 5rem;
+    contain: layout paint;
+    transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: width;
+  }
+
+  .portal-sidebar-shell:hover .portal-sidebar,
+  .portal-sidebar-shell.is-expanded .portal-sidebar {
+    width: 18rem;
+  }
+
+  .portal-sidebar .sidebar-text {
+    max-width: 0;
+    opacity: 0;
+    transition:
+      max-width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 140ms ease;
+  }
+
+  .portal-sidebar:hover .sidebar-text,
+  .portal-sidebar-shell.is-expanded .sidebar-text {
+    max-width: 11rem;
+    opacity: 1;
+    transition-delay: 55ms;
+  }
+
+  .portal-sidebar .sidebar-nav-item {
+    justify-content: center;
+    position: relative;
+    transform: translateX(0);
+    transition:
+      background-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease,
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .portal-sidebar:hover .sidebar-nav-item,
+  .portal-sidebar-shell.is-expanded .sidebar-nav-item {
+    justify-content: flex-start;
+  }
+
+  .portal-sidebar-shell.is-expanded .sidebar-nav-item:hover,
+  .portal-sidebar:hover .sidebar-nav-item:hover {
+    transform: translateX(3px);
+  }
+
+  .portal-sidebar .sidebar-nav-item svg {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      filter 180ms ease;
+  }
+
+  .portal-sidebar-shell.is-expanded .sidebar-nav-item:hover svg,
+  .portal-sidebar:hover .sidebar-nav-item:hover svg {
+    transform: scale(1.08);
+    filter: drop-shadow(0 6px 10px rgba(29, 155, 240, 0.22));
+  }
+
+  .portal-sidebar .sidebar-profile {
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+    opacity: 0;
+    transition:
+      max-height 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 160ms ease;
+  }
+
+  .portal-sidebar:hover .sidebar-profile,
+  .portal-sidebar-shell.is-expanded .sidebar-profile {
+    max-height: 5rem;
+    margin-bottom: 0.75rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    opacity: 1;
+    transition-delay: 50ms;
+  }
+
+  .portal-sidebar .sidebar-logo-card {
+    width: 3rem;
+    height: 3rem;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    transition:
+      width 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      height 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .portal-sidebar:hover .sidebar-logo-card,
+  .portal-sidebar-shell.is-expanded .sidebar-logo-card {
+    width: calc(100% - 2.5rem);
+    height: 4.25rem;
+    margin-left: 0;
+    margin-right: 0;
+    justify-content: flex-start;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
   .content-stagger > * {

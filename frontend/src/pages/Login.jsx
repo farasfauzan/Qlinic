@@ -3,6 +3,7 @@ import {
   Eye,
   EyeOff,
   HeartPulse,
+  KeyRound,
   Lock,
   Mail,
   Settings,
@@ -12,6 +13,8 @@ import {
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
+import { api } from "../api/client";
+import { Modal } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 
 const redirectByRole = {
@@ -20,8 +23,15 @@ const redirectByRole = {
   admin: "/admin/dashboard"
 };
 
+const defaultAdminContact = "0812-3456-7000";
+
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "", role: "pasien" });
+  const [forgotForm, setForgotForm] = useState({ email: "", role: "pasien" });
+  const [forgotInstruction, setForgotInstruction] = useState("");
+  const [forgotContact, setForgotContact] = useState(defaultAdminContact);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,6 +49,31 @@ export default function Login() {
       toast.error(error.message || "Login gagal");
     } finally {
       setLoading(false);
+    }
+  }
+
+  function openForgotPassword() {
+    const resetRole = form.role === "dokter" ? "dokter" : "pasien";
+    setForgotForm({ email: form.role === "admin" ? "" : form.email, role: resetRole });
+    setForgotInstruction("");
+    setForgotContact(defaultAdminContact);
+    setForgotOpen(true);
+  }
+
+  async function handleForgotPassword(event) {
+    event.preventDefault();
+    setForgotLoading(true);
+    setForgotInstruction("");
+
+    try {
+      const response = await api.post("/auth/forgot-password", forgotForm);
+      setForgotInstruction(response.data.instruction);
+      setForgotContact(response.data.adminContact || defaultAdminContact);
+      toast.success(response.message || "Instruksi pemulihan berhasil dibuat");
+    } catch (error) {
+      toast.error(error.message || "Gagal memproses lupa kata sandi");
+    } finally {
+      setForgotLoading(false);
     }
   }
 
@@ -136,9 +171,15 @@ export default function Login() {
             <label className="block">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-slate-700">Kata Sandi</span>
-                <a href="#" className="text-xs font-bold text-[#0a4778] hover:underline">
-                  Lupa Kata Sandi?
-                </a>
+                {form.role !== "admin" ? (
+                  <button
+                    type="button"
+                    onClick={openForgotPassword}
+                    className="text-xs font-bold text-[#0a4778] hover:underline"
+                  >
+                    Lupa Kata Sandi?
+                  </button>
+                ) : null}
               </div>
               <div className="relative mt-1">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
@@ -193,6 +234,83 @@ export default function Login() {
           </p>
         </div>
       </section>
+
+      {forgotOpen ? (
+        <Modal title="Lupa Kata Sandi" onClose={() => setForgotOpen(false)}>
+          <form onSubmit={handleForgotPassword} className="space-y-5">
+            <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-[#0a4778]">
+              Masukkan email sesuai role akun. Sistem akan membuat kode unik yang perlu
+              diberikan ke admin klinik untuk reset password.
+              <span className="mt-2 block font-semibold">WhatsApp admin: {forgotContact}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1.5">
+              {[
+                { id: "pasien", label: "Pasien", icon: User },
+                { id: "dokter", label: "Dokter", icon: Stethoscope }
+              ].map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setForgotForm((value) => ({ ...value, role: r.id }))}
+                  className={`flex flex-col items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-semibold transition ${
+                    forgotForm.role === r.id
+                      ? "bg-white text-navy shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <r.icon className="h-4 w-4" />
+                  <span>{r.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-700">
+                Alamat Email
+              </span>
+              <div className="relative mt-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <input
+                  value={forgotForm.email}
+                  onChange={(e) => setForgotForm((value) => ({ ...value, email: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm font-medium text-navy outline-none transition focus:border-[#0a4778] focus:ring-2 focus:ring-sky-100"
+                  placeholder="nama@email.com"
+                  required
+                />
+              </div>
+            </label>
+
+            {forgotInstruction ? (
+              <div className="flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-700">
+                <KeyRound className="mt-0.5 h-5 w-5 shrink-0" />
+                <p>{forgotInstruction}</p>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setForgotOpen(false)}
+                disabled={forgotLoading}
+                className="min-h-12 rounded-xl border border-slate-200 px-5 py-3 text-base font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Tutup
+              </button>
+              <button
+                type="submit"
+                disabled={forgotLoading}
+                className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#0a4778] px-5 py-3 text-base font-semibold text-white transition hover:bg-[#073e69] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {forgotLoading ? "Memproses..." : "Cek Akun"}
+                <KeyRound className="h-4 w-4" />
+              </button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
     </main>
   );
 }

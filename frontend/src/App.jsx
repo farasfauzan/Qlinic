@@ -4,6 +4,7 @@ import AdminBookings from "./pages/admin/AdminBookings";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminDoctors from "./pages/admin/AdminDoctors";
 import AdminPatients from "./pages/admin/AdminPatients";
+import AdminPasswordResets from "./pages/admin/AdminPasswordResets";
 import AdminPolyclinics from "./pages/admin/AdminPolyclinics";
 import AdminReports from "./pages/admin/AdminReports";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/doctors" element={<AdminDoctors />} />
         <Route path="/admin/patients" element={<AdminPatients />} />
+        <Route path="/admin/password-resets" element={<AdminPasswordResets />} />
         <Route path="/admin/polyclinics" element={<AdminPolyclinics />} />
         <Route path="/admin/bookings" element={<AdminBookings />} />
         <Route path="/admin/reports" element={<AdminReports />} />

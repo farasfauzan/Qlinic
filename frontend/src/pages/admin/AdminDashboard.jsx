@@ -65,6 +65,20 @@ const activities = [
     time: "3 hours ago",
     icon: <FileText className="h-4 w-4 text-clinical" />,
     bg: "bg-sky-50"
+  },
+  {
+    id: 5,
+    title: "Admin approved a password reset request for a patient account",
+    time: "4 hours ago",
+    icon: <FileText className="h-4 w-4 text-clinical" />,
+    bg: "bg-sky-50"
+  },
+  {
+    id: 6,
+    title: "Poli Gigi capacity was updated by clinic administrator",
+    time: "Yesterday",
+    icon: <Calendar className="h-4 w-4 text-slate-600" />,
+    bg: "bg-slate-100"
   }
 ];
 
@@ -105,6 +119,7 @@ const queueData = [
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
+  const [showAllActivities, setShowAllActivities] = useState(false);
 
   // We keep this to show loading state simulating API fetch
   useEffect(() => {
@@ -261,13 +276,17 @@ export default function AdminDashboard() {
             <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 p-5">
                 <h3 className="font-bold text-navy">Aktivitas Terbaru</h3>
-                <button className="text-xs font-semibold text-clinical hover:underline">
-                  See all
+                <button
+                  type="button"
+                  onClick={() => setShowAllActivities((value) => !value)}
+                  className="text-xs font-semibold text-clinical hover:underline"
+                >
+                  {showAllActivities ? "Show less" : "See all"}
                 </button>
               </div>
               <div className="flex-1 p-5">
                 <div className="space-y-6">
-                  {activities.map((activity) => (
+                  {(showAllActivities ? activities : activities.slice(0, 4)).map((activity) => (
                     <div key={activity.id} className="flex gap-4">
                       <div
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${activity.bg}`}

@@ -24,6 +24,7 @@ const emptyDoctor = {
   jadwal_praktik: "",
   password: ""
 };
+const PAGE_SIZE = 5;
 
 function getInitials(name) {
   if (!name) return "DR";
@@ -46,6 +47,7 @@ export default function AdminDoctors() {
 
   const [filterStatus, setFilterStatus] = useState("Semua");
   const [filterPoli, setFilterPoli] = useState("Semua Poliklinik");
+  const [currentPage, setCurrentPage] = useState(1);
 
   async function loadData() {
     setLoading(true);
@@ -116,6 +118,19 @@ export default function AdminDoctors() {
     if (filterPoli !== "Semua Poliklinik" && doc.id_poli.toString() !== filterPoli) return false;
     return true;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredDoctors.length / PAGE_SIZE));
+  const paginatedDoctors = filteredDoctors.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, filterPoli]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   return (
     <DashboardLayout 
@@ -234,7 +249,7 @@ export default function AdminDoctors() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredDoctors.map(doctor => (
+                    {paginatedDoctors.map(doctor => (
                       <tr key={doctor.id} className="hover:bg-slate-50/50">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -286,18 +301,43 @@ export default function AdminDoctors() {
               </div>
             )}
             
-            {/* Pagination Placeholder */}
+            {/* Pagination */}
             {filteredDoctors.length > 0 && (
               <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
                 <p className="text-sm text-slate-500">
-                  Menampilkan 1-{Math.min(filteredDoctors.length, 10)} dari {filteredDoctors.length} Dokter
+                  Menampilkan {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredDoctors.length)} dari {filteredDoctors.length} Dokter
                 </p>
                 <div className="flex items-center gap-1">
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">&lt;</button>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-navy font-bold text-white">1</button>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">2</button>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">3</button>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">&gt;</button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    &lt;
+                  </button>
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg font-bold ${
+                        currentPage === page
+                          ? "bg-navy text-white"
+                          : "border border-slate-200 text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    &gt;
+                  </button>
                 </div>
               </div>
             )}
