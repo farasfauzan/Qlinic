@@ -1,31 +1,39 @@
 import {
   CalendarDays,
   CheckCircle2,
+  ClipboardPlus,
   Clock,
   Download,
+  Eye,
   FileText,
+  Pill,
+  Plus,
   Search,
-  User,
+  Trash2,
   Users,
-  XCircle
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { Modal } from "../../components/Modal";
 import { EmptyState, LoadingState } from "../../components/States";
-import { useAuth } from "../../context/AuthContext";
 import { DoctorLayout } from "../../layouts/DoctorLayout";
 import { formatDate, formatTime } from "../../utils";
 
 const filterOptions = ["Semua", "Menunggu", "Konsultasi", "Selesai"];
 
 export default function DoctorPatients() {
+  const [searchParams] = useSearchParams();
+  const requestedBookingParam = searchParams.get("booking");
+  const requestedAction = searchParams.get("action");
   const [bookings, setBookings] = useState([]);
+  const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("Semua");
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [recordModal, setRecordModal] = useState(null);
 
   // Mocking to match the design's "Konsultasi" status visually since backend only has Pending/Done/Cancelled
   // We'll treat the first Pending as "Konsultasi" (active) just for visual fidelity if needed, 
@@ -35,16 +43,36 @@ export default function DoctorPatients() {
   async function loadBookings() {
     setLoading(true);
     try {
-      // In a real app we'd fetch only today's, but we fetch all for now to show data
-      const response = await api.get("/dokter/me/bookings");
-      setBookings(response.data);
-      
-      // Auto-select first patient if any
-      if (response.data.length > 0) {
-        setSelectedPatient(response.data[0]);
+      const [bookingResponse, recordResponse] = await Promise.all([
+        api.get("/dokter/me/bookings"),
+        api.get("/rekam-medis")
+      ]);
+      const nextBookings = bookingResponse.data;
+      const nextRecords = recordResponse.data;
+      setBookings(nextBookings);
+      setRecords(nextRecords);
+
+      if (nextBookings.length > 0) {
+        const requestedBookingId = Number(requestedBookingParam);
+        const requestedBooking = nextBookings.find((booking) => booking.id === requestedBookingId);
+        const nextSelected = requestedBooking || nextBookings[0];
+        setSelectedPatient(nextSelected);
+
+        if (requestedBooking && requestedAction === "record") {
+          const existingRecord = nextRecords.find((record) => record.id_booking === requestedBooking.id);
+          setRecordModal({
+            booking: requestedBooking,
+            record: existingRecord || null,
+            mode: existingRecord ? "view" : "create"
+          });
+        }
+
         // Mock the first pending as 'Konsultasi'
-        const firstPending = response.data.find(b => b.status_booking === 'Pending');
+        const firstPending = nextBookings.find(b => b.status_booking === 'Pending');
         if (firstPending) setActiveConsultationId(firstPending.id);
+      } else {
+        setSelectedPatient(null);
+        setActiveConsultationId(null);
       }
     } finally {
       setLoading(false);
@@ -53,20 +81,24 @@ export default function DoctorPatients() {
 
   useEffect(() => {
     loadBookings();
-  }, []);
+  }, [requestedBookingParam, requestedAction]);
+
+  const recordsByBookingId = useMemo(() => {
+    return new Map(records.map((record) => [record.id_booking, record]));
+  }, [records]);
 
   const stats = useMemo(() => {
     return {
       total: bookings.length,
       selesai: bookings.filter(b => b.status_booking === 'Done').length,
-      menunggu: bookings.filter(b => b.status_booking === 'Pending').length
+      menunggu: bookings.filter(b => b.status_booking === 'Pending' && b.id !== activeConsultationId).length
     };
-  }, [bookings]);
+  }, [bookings, activeConsultationId]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter(b => {
       const matchSearch = b.pasien_nama.toLowerCase().includes(search.toLowerCase()) || 
-                          b.nomor_antrean.toLowerCase().includes(search.toLowerCase());
+                          String(b.nomor_antrean).toLowerCase().includes(search.toLowerCase());
       
       let matchFilter = true;
       if (filter === "Menunggu") matchFilter = b.status_booking === "Pending" && b.id !== activeConsultationId;
@@ -78,8 +110,44 @@ export default function DoctorPatients() {
   }, [bookings, search, filter, activeConsultationId]);
 
   const handleExport = () => {
+    if (!filteredBookings.length) {
+      toast.error("Tidak ada data pasien untuk diekspor");
+      return;
+    }
+
+    const rows = filteredBookings.map((booking) => ({
+      nomor_antrean: booking.nomor_antrean,
+      nama_pasien: booking.pasien_nama,
+      nik: booking.nik || "",
+      tanggal_kunjungan: booking.tanggal_kunjungan,
+      jam_slot: booking.jam_slot,
+      status_booking: booking.status_booking,
+      rekam_medis: recordsByBookingId.has(booking.id) ? "Ada" : "Belum ada"
+    }));
+
+    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "daftar-pasien-dokter-qlinic.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
     toast.success("Daftar pasien diekspor");
   };
+
+  function openRecordModal(booking) {
+    const record = recordsByBookingId.get(booking.id);
+    setRecordModal({
+      booking,
+      record: record || null,
+      mode: record ? "view" : "create"
+    });
+  }
+
+  async function handleRecordSaved() {
+    setRecordModal(null);
+    await loadBookings();
+  }
 
   const getStatusDisplay = (booking) => {
     if (booking.id === activeConsultationId && booking.status_booking === 'Pending') {
@@ -100,6 +168,9 @@ export default function DoctorPatients() {
       keluhan: booking.status_booking === "Done" ? "Pemeriksaan rutin." : "Batuk berdahak sejak 3 hari yang lalu, disertai demam ringan di malam hari."
     };
   };
+
+  const selectedRecord = selectedPatient ? recordsByBookingId.get(selectedPatient.id) : null;
+  const selectedCanCreateRecord = selectedPatient?.status_booking !== "Cancelled";
 
   return (
     <DoctorLayout title="Daftar Pasien Hari Ini">
@@ -283,14 +354,27 @@ export default function DoctorPatients() {
                     </div>
 
                     <div className="mt-auto space-y-2 pt-2">
-                       <button className="w-full flex items-center justify-center gap-2 bg-[#f0f7ff] hover:bg-[#e0efff] text-[#0a4778] px-4 py-2.5 rounded-lg text-xs font-bold transition">
-                         <FileText className="w-4 h-4" /> Lihat Rekam Medis
+                       <button
+                         type="button"
+                         onClick={() => selectedCanCreateRecord && openRecordModal(selectedPatient)}
+                         disabled={!selectedCanCreateRecord}
+                         className="w-full flex items-center justify-center gap-2 bg-[#f0f7ff] hover:bg-[#e0efff] text-[#0a4778] px-4 py-2.5 rounded-lg text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-60"
+                       >
+                         {selectedRecord ? (
+                           <>
+                             <Eye className="w-4 h-4" /> Lihat Rekam Medis
+                           </>
+                         ) : (
+                           <>
+                             <ClipboardPlus className="w-4 h-4" /> Isi Rekam Medis
+                           </>
+                         )}
                        </button>
-                       {selectedPatient.status_booking !== 'Done' && (
-                         <button className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-lg text-xs font-bold transition">
-                           <XCircle className="w-4 h-4" /> Batalkan Janji
-                         </button>
-                       )}
+                       {!selectedCanCreateRecord ? (
+                         <p className="rounded-lg bg-slate-50 px-3 py-2 text-center text-[11px] font-semibold text-slate-500">
+                           Booking dibatalkan, rekam medis tidak dapat dibuat.
+                         </p>
+                       ) : null}
                     </div>
                  </div>
               </div>
@@ -302,6 +386,271 @@ export default function DoctorPatients() {
          </aside>
 
       </div>
+
+      {recordModal ? (
+        <MedicalRecordModal
+          booking={recordModal.booking}
+          record={recordModal.record}
+          mode={recordModal.mode}
+          onClose={() => setRecordModal(null)}
+          onSaved={handleRecordSaved}
+        />
+      ) : null}
     </DoctorLayout>
+  );
+}
+
+function MedicalRecordModal({ booking, record, mode, onClose, onSaved }) {
+  const title = record || mode === "view" ? "Detail Rekam Medis" : "Isi Rekam Medis";
+
+  return (
+    <Modal title={title} onClose={onClose}>
+      {record ? (
+        <MedicalRecordDetail booking={booking} record={record} />
+      ) : (
+        <MedicalRecordForm booking={booking} onCancel={onClose} onSaved={onSaved} />
+      )}
+    </Modal>
+  );
+}
+
+function MedicalRecordDetail({ booking, record }) {
+  return (
+    <div className="space-y-5">
+      <PatientVisitSummary booking={booking} />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <DetailBlock label="Keluhan" value={record.keluhan} />
+        <DetailBlock label="Diagnosis" value={record.diagnosa} strong />
+      </div>
+
+      <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#0a4778]">
+          <FileText className="h-4 w-4" />
+          Catatan Dokter
+        </h3>
+        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
+          {record.catatan_dokter}
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#0a4778]">
+          <Pill className="h-4 w-4" />
+          Resep Obat
+        </h3>
+        {record.resep_obat?.length ? (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {record.resep_obat.map((item) => (
+              <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-sm font-bold text-navy">{item.detail_obat}</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">{item.dosis}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm font-medium text-slate-500">Tidak ada resep obat.</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function MedicalRecordForm({ booking, onCancel, onSaved }) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    keluhan: "",
+    diagnosa: "",
+    catatan_dokter: "",
+    resep_obat: [{ detail_obat: "", dosis: "" }]
+  });
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updatePrescription(index, field, value) {
+    setForm((current) => ({
+      ...current,
+      resep_obat: current.resep_obat.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item
+      )
+    }));
+  }
+
+  function addPrescription() {
+    setForm((current) => ({
+      ...current,
+      resep_obat: [...current.resep_obat, { detail_obat: "", dosis: "" }]
+    }));
+  }
+
+  function removePrescription(index) {
+    setForm((current) => ({
+      ...current,
+      resep_obat: current.resep_obat.filter((_, itemIndex) => itemIndex !== index)
+    }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await api.post("/rekam-medis", {
+        id_booking: booking.id,
+        keluhan: form.keluhan.trim(),
+        diagnosa: form.diagnosa.trim(),
+        catatan_dokter: form.catatan_dokter.trim(),
+        resep_obat: form.resep_obat
+          .map((item) => ({
+            detail_obat: item.detail_obat.trim(),
+            dosis: item.dosis.trim()
+          }))
+          .filter((item) => item.detail_obat)
+      });
+      toast.success("Rekam medis berhasil disimpan");
+      await onSaved();
+    } catch (error) {
+      toast.error(error.message || "Gagal menyimpan rekam medis");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <PatientVisitSummary booking={booking} />
+
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-700">Keluhan pasien</span>
+        <textarea
+          required
+          value={form.keluhan}
+          onChange={(event) => updateField("keluhan", event.target.value)}
+          rows={3}
+          className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#0a4778]"
+          placeholder="Tuliskan keluhan utama pasien"
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-700">Diagnosis</span>
+        <input
+          required
+          value={form.diagnosa}
+          onChange={(event) => updateField("diagnosa", event.target.value)}
+          className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#0a4778]"
+          placeholder="Contoh: ISPA ringan"
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-700">Catatan dokter</span>
+        <textarea
+          required
+          value={form.catatan_dokter}
+          onChange={(event) => updateField("catatan_dokter", event.target.value)}
+          rows={4}
+          className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#0a4778]"
+          placeholder="Ringkasan pemeriksaan, instruksi, dan saran kontrol"
+        />
+      </label>
+
+      <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-[#0a4778]">
+            <Pill className="h-4 w-4" />
+            Resep Obat
+          </h3>
+          <button
+            type="button"
+            onClick={addPrescription}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#0a4778] hover:bg-sky-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Tambah
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {form.resep_obat.map((item, index) => (
+            <div key={index} className="grid gap-3 rounded-lg bg-white p-3 sm:grid-cols-[1fr_1fr_auto]">
+              <input
+                value={item.detail_obat}
+                onChange={(event) => updatePrescription(index, "detail_obat", event.target.value)}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0a4778]"
+                placeholder="Nama obat"
+              />
+              <input
+                value={item.dosis}
+                onChange={(event) => updatePrescription(index, "dosis", event.target.value)}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0a4778]"
+                placeholder="Dosis dan aturan pakai"
+              />
+              <button
+                type="button"
+                onClick={() => removePrescription(index)}
+                disabled={form.resep_obat.length === 1}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Hapus resep"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="rounded-lg border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+        >
+          Batal
+        </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-lg bg-[#0a4778] px-5 py-3 text-sm font-bold text-white hover:bg-[#073e69] disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {saving ? "Menyimpan..." : "Simpan Rekam Medis"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function PatientVisitSummary({ booking }) {
+  return (
+    <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+      <SummaryItem label="Pasien" value={booking.pasien_nama} />
+      <SummaryItem label="Tanggal" value={formatDate(booking.tanggal_kunjungan)} />
+      <SummaryItem label="Jam" value={`${formatTime(booking.jam_slot)} WIB`} />
+      <SummaryItem label="NIK" value={booking.nik || "-"} />
+      <SummaryItem label="No. Antrean" value={`#${booking.nomor_antrean}`} />
+      <SummaryItem label="Status" value={booking.status_booking} />
+    </div>
+  );
+}
+
+function SummaryItem({ label, value }) {
+  return (
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-bold text-navy">{value}</p>
+    </div>
+  );
+}
+
+function DetailBlock({ label, value, strong = false }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className={`mt-1 whitespace-pre-line text-sm leading-6 ${strong ? "font-bold text-navy" : "text-slate-700"}`}>
+        {value || "-"}
+      </p>
+    </div>
   );
 }

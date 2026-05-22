@@ -1,6 +1,7 @@
 import {
   Activity,
   CalendarDays,
+  ClipboardList,
   HeartPulse,
   LogOut,
   Menu,
@@ -15,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 const navItems = [
   { label: "Dashboard", path: "/doctor/dashboard", icon: Activity },
   { label: "Patients", path: "/doctor/patients", icon: Users },
+  { label: "Records", path: "/doctor/medical-records", icon: ClipboardList },
   { label: "Schedule", path: "/doctor/schedule", icon: CalendarDays }
 ];
 

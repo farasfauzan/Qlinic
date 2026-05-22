@@ -28,7 +28,8 @@ const navItems = {
   dokter: [
     { label: "Dashboard", path: "/doctor/dashboard", icon: Activity },
     { label: "Schedule", path: "/doctor/schedule", icon: CalendarDays },
-    { label: "Patients", path: "/doctor/patients", icon: Users }
+    { label: "Patients", path: "/doctor/patients", icon: Users },
+    { label: "Records", path: "/doctor/medical-records", icon: ClipboardList }
   ],
   admin: [
     { label: "Dashboard", path: "/admin/dashboard", icon: Activity },

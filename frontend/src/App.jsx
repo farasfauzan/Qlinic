@@ -8,6 +8,7 @@ import AdminPasswordResets from "./pages/admin/AdminPasswordResets";
 import AdminPolyclinics from "./pages/admin/AdminPolyclinics";
 import AdminReports from "./pages/admin/AdminReports";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
+import DoctorMedicalRecords from "./pages/doctor/DoctorMedicalRecords";
 import DoctorPatients from "./pages/doctor/DoctorPatients";
 import DoctorSchedule from "./pages/doctor/DoctorSchedule";
 import Landing from "./pages/Landing";
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
         <Route path="/doctor/schedule" element={<DoctorSchedule />} />
         <Route path="/doctor/patients" element={<DoctorPatients />} />
+        <Route path="/doctor/medical-records" element={<DoctorMedicalRecords />} />
         <Route path="/doctor/settings" element={<DoctorLayout title="Settings"><div className="p-8 text-center text-slate-500 mt-20 font-bold bg-white rounded-xl border border-slate-200">Fitur Settings akan segera hadir.</div></DoctorLayout>} />
         <Route path="/doctor/help" element={<DoctorLayout title="Help"><div className="p-8 text-center text-slate-500 mt-20 font-bold bg-white rounded-xl border border-slate-200">Fitur Help akan segera hadir.</div></DoctorLayout>} />
       </Route>

@@ -1,4 +1,4 @@
-import { AlertCircle, Clock, MoreVertical, TrendingUp, Users as UsersIcon } from "lucide-react";
+import { AlertCircle, ClipboardPlus, Clock, FileText, TrendingUp, Users as UsersIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -74,16 +74,6 @@ export default function DoctorDashboard() {
       time: "Kemarin"
     }
   ];
-
-  async function markDone(id) {
-    try {
-      await api.put(`/booking/${id}/status`, { status_booking: "Done" });
-      toast.success("Booking ditandai selesai");
-      await loadBookings();
-    } catch (error) {
-      toast.error(error.message || "Gagal memperbarui status");
-    }
-  }
 
   return (
     <DoctorLayout>
@@ -173,16 +163,22 @@ export default function DoctorDashboard() {
                     </div>
                     
                     <div className="flex items-center gap-3">
-                      {booking.status_booking === "Pending" && (
-                         <button
-                           onClick={() => markDone(booking.id)}
-                           className="text-xs font-bold text-emerald-600 hover:underline"
-                         >
-                           Tandai Selesai
-                         </button>
-                      )}
-                      <button className="text-slate-400 hover:text-navy">
-                        <MoreVertical className="h-5 w-5" />
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/doctor/patients?booking=${booking.id}&action=record`)}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-[#0a4778] hover:bg-sky-50"
+                      >
+                        {booking.status_booking === "Pending" ? (
+                          <>
+                            <ClipboardPlus className="h-4 w-4" />
+                            Isi Rekam Medis
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4" />
+                            Rekam Medis
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
