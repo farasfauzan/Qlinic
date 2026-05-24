@@ -6,7 +6,7 @@ import {
   Trash2,
   X
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "../../api/client";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -110,8 +110,9 @@ export default function DoctorSchedule() {
 
   const updateSlot = (day, index, field, value) => {
     setSchedule(prev => {
-      const newSlots = [...prev[day].slots];
-      newSlots[index][field] = value;
+      const newSlots = prev[day].slots.map((slot, slotIndex) =>
+        slotIndex === index ? { ...slot, [field]: value } : slot
+      );
       return { ...prev, [day]: { ...prev[day], slots: newSlots } };
     });
   };
@@ -151,9 +152,20 @@ export default function DoctorSchedule() {
 
   const calendarDays = getCalendarDays();
   const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const totalSlots = useMemo(
+    () => DAYS.reduce((total, day) => total + (schedule[day].active ? schedule[day].slots.length : 0), 0),
+    [schedule]
+  );
+  const activeDays = useMemo(
+    () => DAYS.filter((day) => schedule[day].active).length,
+    [schedule]
+  );
 
   return (
-    <DoctorLayout>
+    <DoctorLayout
+      title="Kelola Jadwal Praktik"
+      subtitle="Konfigurasi waktu operasional dan ketersediaan praktik Anda."
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
          <div>
             <h1 className="text-2xl font-bold text-navy">Kelola Jadwal Praktik</h1>
@@ -243,28 +255,28 @@ export default function DoctorSchedule() {
                <h3 className="text-xs font-bold uppercase tracking-wider text-sky-100 mb-6">Ringkasan Slot Pekan Depan</h3>
                
                <div className="flex items-end gap-3 mb-8">
-                 <span className="text-5xl font-bold">42</span>
+                 <span className="text-5xl font-bold">{totalSlots}</span>
                  <span className="text-sm font-medium text-sky-100 pb-1">Total Slot</span>
                </div>
 
                <div className="space-y-4">
                  <div>
                    <div className="flex justify-between text-xs font-bold mb-2">
-                     <span>Terisi</span>
-                     <span>28 Slot</span>
+                     <span>Hari Aktif</span>
+                     <span>{activeDays} Hari</span>
                    </div>
                    <div className="h-1.5 w-full bg-black/20 rounded-full overflow-hidden">
-                     <div className="h-full bg-sky-400 rounded-full" style={{ width: '66%' }}></div>
+                     <div className="h-full bg-sky-400 rounded-full" style={{ width: `${(activeDays / DAYS.length) * 100}%` }}></div>
                    </div>
                  </div>
                  
                  <div>
                    <div className="flex justify-between text-xs font-bold mb-2 text-sky-100">
-                     <span>Tersedia</span>
-                     <span>14 Slot</span>
+                     <span>Cuti</span>
+                     <span>{cutiDates.length} Hari</span>
                    </div>
                    <div className="h-1.5 w-full bg-black/20 rounded-full overflow-hidden">
-                     <div className="h-full bg-[#58b9f6] rounded-full" style={{ width: '33%' }}></div>
+                     <div className="h-full bg-[#58b9f6] rounded-full" style={{ width: `${Math.min(cutiDates.length * 12, 100)}%` }}></div>
                    </div>
                  </div>
                </div>
@@ -276,7 +288,19 @@ export default function DoctorSchedule() {
                  <h3 className="flex items-center gap-2 text-sm font-bold text-navy">
                    <CalendarDays className="w-4 h-4 text-red-500" /> Cuti & Libur
                  </h3>
-                 <button className="text-xs font-bold text-[#0a4778] hover:underline">Tambah</button>
+                 <button
+                   type="button"
+                   onClick={() => {
+                     const today = new Date();
+                     const year = today.getFullYear();
+                     const month = String(today.getMonth() + 1).padStart(2, "0");
+                     const day = String(today.getDate()).padStart(2, "0");
+                     toggleCuti(`${year}-${month}-${day}`);
+                   }}
+                   className="text-xs font-bold text-[#0a4778] hover:underline"
+                 >
+                   Tandai Hari Ini
+                 </button>
                </div>
 
                {/* Custom Visual Calendar */}

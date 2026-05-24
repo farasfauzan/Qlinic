@@ -4,9 +4,11 @@ import AdminBookings from "./pages/admin/AdminBookings";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminDoctors from "./pages/admin/AdminDoctors";
 import AdminPatients from "./pages/admin/AdminPatients";
+import AdminPasswordResets from "./pages/admin/AdminPasswordResets";
 import AdminPolyclinics from "./pages/admin/AdminPolyclinics";
 import AdminReports from "./pages/admin/AdminReports";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
+import DoctorMedicalRecords from "./pages/doctor/DoctorMedicalRecords";
 import DoctorPatients from "./pages/doctor/DoctorPatients";
 import DoctorSchedule from "./pages/doctor/DoctorSchedule";
 import Landing from "./pages/Landing";
@@ -36,6 +38,7 @@ export default function App() {
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
         <Route path="/doctor/schedule" element={<DoctorSchedule />} />
         <Route path="/doctor/patients" element={<DoctorPatients />} />
+        <Route path="/doctor/medical-records" element={<DoctorMedicalRecords />} />
         <Route path="/doctor/settings" element={<DoctorLayout title="Settings"><div className="p-8 text-center text-slate-500 mt-20 font-bold bg-white rounded-xl border border-slate-200">Fitur Settings akan segera hadir.</div></DoctorLayout>} />
         <Route path="/doctor/help" element={<DoctorLayout title="Help"><div className="p-8 text-center text-slate-500 mt-20 font-bold bg-white rounded-xl border border-slate-200">Fitur Help akan segera hadir.</div></DoctorLayout>} />
       </Route>
@@ -44,6 +47,7 @@ export default function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/doctors" element={<AdminDoctors />} />
         <Route path="/admin/patients" element={<AdminPatients />} />
+        <Route path="/admin/password-resets" element={<AdminPasswordResets />} />
         <Route path="/admin/polyclinics" element={<AdminPolyclinics />} />
         <Route path="/admin/bookings" element={<AdminBookings />} />
         <Route path="/admin/reports" element={<AdminReports />} />

@@ -6,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { assertRequired, HttpError } from "../utils/httpError.js";
 
 const router = Router();
+let scheduleColumnReady = false;
 
 const doctorSelect = `
   SELECT d.id, d.id_poli, p.nama_poli, d.nama, d.spesialisasi, d.email,
@@ -13,6 +14,12 @@ const doctorSelect = `
   FROM dokter d
   LEFT JOIN poliklinik p ON p.id = d.id_poli
 `;
+
+async function ensureScheduleColumn() {
+  if (scheduleColumnReady) return;
+  await pool.query("ALTER TABLE dokter MODIFY jadwal_praktik TEXT NOT NULL");
+  scheduleColumnReady = true;
+}
 
 router.get(
   "/",
@@ -55,10 +62,8 @@ router.put(
     if (!trimmed) {
       throw new HttpError(400, "Jadwal praktik tidak boleh kosong");
     }
-    if (trimmed.length > 255) {
-      throw new HttpError(400, "Jadwal praktik maksimal 255 karakter");
-    }
 
+    await ensureScheduleColumn();
     const [result] = await pool.query("UPDATE dokter SET jadwal_praktik = ? WHERE id = ?", [
       trimmed,
       req.user.id

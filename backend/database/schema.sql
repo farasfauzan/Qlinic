@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS notifikasi;
 DROP TABLE IF EXISTS resep_obat;
 DROP TABLE IF EXISTS rekam_medis;
 DROP TABLE IF EXISTS booking_antrean;
+DROP TABLE IF EXISTS password_reset_requests;
 DROP TABLE IF EXISTS dokter;
 DROP TABLE IF EXISTS poliklinik;
 DROP TABLE IF EXISTS admin;
@@ -47,12 +48,29 @@ CREATE TABLE dokter (
   spesialisasi VARCHAR(120) NOT NULL,
   email VARCHAR(120) NOT NULL UNIQUE,
   no_telp VARCHAR(32) NOT NULL,
-  jadwal_praktik VARCHAR(255) NOT NULL,
+  jadwal_praktik TEXT NOT NULL,
   password VARCHAR(255) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_dokter_poliklinik
     FOREIGN KEY (id_poli) REFERENCES poliklinik(id)
+    ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE password_reset_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  requester_role ENUM('pasien', 'dokter') NOT NULL,
+  requester_id INT NOT NULL,
+  code VARCHAR(7) NOT NULL UNIQUE,
+  status ENUM('PENDING', 'APPROVED', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
+  approved_by INT NULL,
+  approved_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_reset_status (status, created_at),
+  INDEX idx_reset_requester (requester_role, requester_id),
+  CONSTRAINT fk_reset_approved_by
+    FOREIGN KEY (approved_by) REFERENCES admin(id)
     ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

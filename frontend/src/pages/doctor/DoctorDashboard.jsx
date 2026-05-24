@@ -1,6 +1,7 @@
-import { AlertCircle, Clock, MoreVertical, TrendingUp, Users as UsersIcon } from "lucide-react";
+import { AlertCircle, ClipboardPlus, Clock, FileText, TrendingUp, Users as UsersIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { EmptyState, LoadingState } from "../../components/States";
 import { useAuth } from "../../context/AuthContext";
@@ -9,8 +10,10 @@ import { toInputDate } from "../../utils";
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAllNotifications, setShowAllNotifications] = useState(false);
 
   async function loadBookings() {
     try {
@@ -29,16 +32,48 @@ export default function DoctorDashboard() {
 
   const pending = useMemo(() => bookings.filter((b) => b.status_booking === "Pending"), [bookings]);
   const done = useMemo(() => bookings.filter((b) => b.status_booking === "Done"), [bookings]);
-
-  async function markDone(id) {
-    try {
-      await api.put(`/booking/${id}/status`, { status_booking: "Done" });
-      toast.success("Booking ditandai selesai");
-      await loadBookings();
-    } catch (error) {
-      toast.error(error.message || "Gagal memperbarui status");
+  const notificationItems = [
+    {
+      id: "lab",
+      icon: AlertCircle,
+      iconClass: "bg-red-50 text-red-500",
+      title: "Darurat: Lab Result Ready",
+      message: "Hasil lab untuk Pasien #24 (Tn. Ahmad) sudah tersedia untuk ditinjau segera.",
+      time: "2 menit yang lalu"
+    },
+    {
+      id: "schedule",
+      icon: Clock,
+      iconClass: "bg-sky-50 text-sky-500",
+      title: "Jadwal Berubah",
+      message: "Pasien #22 membatalkan janji temu pukul 14:00. Slot sekarang tersedia.",
+      time: "1 jam yang lalu"
+    },
+    {
+      id: "meeting",
+      icon: UsersIcon,
+      iconClass: "bg-[#0a4778]/10 text-[#0a4778]",
+      title: "Rapat Staf",
+      message: "Pengingat: Rapat koordinasi mingguan di ruang konferensi A pukul 15:00.",
+      time: "3 jam yang lalu"
+    },
+    {
+      id: "record",
+      icon: AlertCircle,
+      iconClass: "bg-amber-50 text-amber-600",
+      title: "Rekam medis perlu dilengkapi",
+      message: "Ada pemeriksaan selesai yang belum memiliki catatan dokter lengkap.",
+      time: "Kemarin"
+    },
+    {
+      id: "queue",
+      icon: UsersIcon,
+      iconClass: "bg-emerald-50 text-emerald-600",
+      title: "Antrean pagi sudah siap",
+      message: "Daftar pasien untuk sesi pagi sudah diperbarui oleh sistem.",
+      time: "Kemarin"
     }
-  }
+  ];
 
   return (
     <DoctorLayout>
@@ -83,9 +118,19 @@ export default function DoctorDashboard() {
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <h2 className="text-lg font-bold text-navy">Jadwal Hari Ini</h2>
-                <button className="text-sm font-semibold text-slate-400 hover:text-navy">Kelola Jadwal</button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/doctor/schedule")}
+                  className="text-sm font-semibold text-slate-400 hover:text-navy"
+                >
+                  Kelola Jadwal
+                </button>
               </div>
-              <button className="rounded-lg bg-[#0a4778] px-4 py-2 text-sm font-bold text-white shadow hover:bg-[#073e69]">
+              <button
+                type="button"
+                onClick={() => navigate("/doctor/patients")}
+                className="rounded-lg bg-[#0a4778] px-4 py-2 text-sm font-bold text-white shadow hover:bg-[#073e69]"
+              >
                 Lihat Semua Pasien
               </button>
             </div>
@@ -118,16 +163,22 @@ export default function DoctorDashboard() {
                     </div>
                     
                     <div className="flex items-center gap-3">
-                      {booking.status_booking === "Pending" && (
-                         <button
-                           onClick={() => markDone(booking.id)}
-                           className="text-xs font-bold text-emerald-600 hover:underline"
-                         >
-                           Tandai Selesai
-                         </button>
-                      )}
-                      <button className="text-slate-400 hover:text-navy">
-                        <MoreVertical className="h-5 w-5" />
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/doctor/patients?booking=${booking.id}&action=record`)}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-[#0a4778] hover:bg-sky-50"
+                      >
+                        {booking.status_booking === "Pending" ? (
+                          <>
+                            <ClipboardPlus className="h-4 w-4" />
+                            Isi Rekam Medis
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4" />
+                            Rekam Medis
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -145,44 +196,29 @@ export default function DoctorDashboard() {
             <h2 className="text-[15px] font-bold text-navy">Notifikasi & Catatan</h2>
           </div>
           <div className="flex-1 overflow-y-auto p-5 space-y-6">
-            
-            <div className="flex gap-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-500">
-                <AlertCircle className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-navy">Darurat: Lab Result Ready</h4>
-                <p className="mt-1 text-xs leading-relaxed text-slate-600">Hasil lab untuk Pasien #24 (Tn. Ahmad) sudah tersedia untuk ditinjau segera.</p>
-                <p className="mt-2 text-[10px] font-medium text-slate-400">2 menit yang lalu</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sky-500">
-                <Clock className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-navy">Jadwal Berubah</h4>
-                <p className="mt-1 text-xs leading-relaxed text-slate-600">Pasien #22 membatalkan janji temu pukul 14:00. Slot sekarang tersedia.</p>
-                <p className="mt-2 text-[10px] font-medium text-slate-400">1 jam yang lalu</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0a4778]/10 text-[#0a4778]">
-                <UsersIcon className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-navy">Rapat Staf</h4>
-                <p className="mt-1 text-xs leading-relaxed text-slate-600">Pengingat: Rapat koordinasi mingguan di ruang konferensi A pukul 15:00.</p>
-                <p className="mt-2 text-[10px] font-medium text-slate-400">3 jam yang lalu</p>
-              </div>
-            </div>
-            
+            {(showAllNotifications ? notificationItems : notificationItems.slice(0, 3)).map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.id} className="flex gap-4">
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.iconClass}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-navy">{item.title}</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-600">{item.message}</p>
+                    <p className="mt-2 text-[10px] font-medium text-slate-400">{item.time}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <div className="p-4 border-t border-slate-100">
-            <button className="w-full rounded-lg border border-[#0a4778]/20 bg-sky-50 py-2.5 text-xs font-bold text-[#0a4778] hover:bg-sky-100 transition">
-              Lihat Semua Notifikasi
+            <button
+              type="button"
+              onClick={() => setShowAllNotifications((value) => !value)}
+              className="w-full rounded-lg border border-[#0a4778]/20 bg-sky-50 py-2.5 text-xs font-bold text-[#0a4778] hover:bg-sky-100 transition"
+            >
+              {showAllNotifications ? "Tampilkan Lebih Sedikit" : "Lihat Semua Notifikasi"}
             </button>
           </div>
         </aside>

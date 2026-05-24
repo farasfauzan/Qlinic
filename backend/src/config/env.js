@@ -20,5 +20,6 @@ export const env = {
     ssl: process.env.DB_SSL === "true"
   },
   jwtSecret: process.env.JWT_SECRET || "qlinic_local_secret",
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1d"
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1d",
+  adminContact: process.env.ADMIN_CONTACT || "0812-3456-7000"
 };
