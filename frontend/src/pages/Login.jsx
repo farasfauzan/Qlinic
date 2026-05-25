@@ -168,7 +168,7 @@ export default function Login() {
               </div>
             </label>
 
-            <label className="block">
+            <div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-slate-700">Kata Sandi</span>
                 {form.role !== "admin" ? (
@@ -201,7 +201,7 @@ export default function Login() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-            </label>
+            </div>
 
             <div className="flex items-center gap-2">
               <input
