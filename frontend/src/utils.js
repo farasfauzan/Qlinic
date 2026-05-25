@@ -42,6 +42,10 @@ export function timeSlots() {
   ];
 }
 
+export function toInputDate(value = new Date()) {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
 export function statusClass(status) {
   const map = {
     Pending: "bg-amber-100 text-amber-800 ring-amber-200",
