@@ -1,219 +1,131 @@
-import { Bell, Check, CheckCheck, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client";
-
-const POLL_INTERVAL_MS = 30000;
-
-const jenisLabel = {
-    booking_created: "Booking dibuat",
-    booking_cancelled: "Booking dibatalkan",
-    booking_done: "Pemeriksaan selesai",
-    rekam_medis: "Rekam medis"
-};
 
 export function NotificationBell({ fallbackItems = [] }) {
     const hasFallback = fallbackItems.length > 0;
-    const [items, setItems] = useState(fallbackItems);
-    const [unread, setUnread] = useState(fallbackItems.filter((item) => !item.is_read).length);
-    const [loading, setLoading] = useState(false);
-    const [open, setOpen] = useState(false);
-    const [marking, setMarking] = useState(false);
-    const containerRef = useRef(null);
-
-    async function load() {
-        if (hasFallback) {
-            setItems((current) => (current.length ? current : fallbackItems));
-            setUnread((current) => current);
-            return;
-        }
-        try {
-            const response = await api.get("/notifikasi");
-            setItems(response.data || []);
-            setUnread(response.meta?.unread || 0);
-        } catch {
-            // diam-diam saja, jangan ganggu UI utama
-        }
-    }
+    const [unreadCount, setUnreadCount] = useState(hasFallback ? fallbackItems.filter(i => !i.is_read).length : 0);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [notifications, setNotifications] = useState(fallbackItems);
 
     useEffect(() => {
-        load();
-        const interval = setInterval(load, POLL_INTERVAL_MS);
-        return () => clearInterval(interval);
-    }, [hasFallback]);
-
-    useEffect(() => {
-        function onClickOutside(event) {
-            if (!containerRef.current) return;
-            if (!containerRef.current.contains(event.target)) {
-                setOpen(false);
+        async function loadNotifications() {
+            if (hasFallback) {
+                setNotifications(current => current.length ? current : fallbackItems);
+                setUnreadCount(current => current);
+                return;
             }
-        }
-        if (open) {
-            document.addEventListener("mousedown", onClickOutside);
-        }
-        return () => document.removeEventListener("mousedown", onClickOutside);
-    }, [open]);
-
-    async function toggleOpen() {
-        const next = !open;
-        setOpen(next);
-        if (next) {
-            setLoading(true);
             try {
-                await load();
-            } finally {
-                setLoading(false);
+                const response = await api.get("/notifikasi/", { params: { unread: "1" } });
+                setNotifications(response.data.data || []);
+                setUnreadCount(response.data.meta?.unread || 0);
+            } catch (error) {
+                // Silently fail - notifications not critical
             }
         }
-    }
+        loadNotifications();
+    }, [hasFallback, fallbackItems]);
 
-    async function markOneRead(item) {
-        if (item.is_read) return;
+    const markAsRead = async (id) => {
         if (hasFallback) {
-            setItems((prev) =>
-                prev.map((row) => (row.id === item.id ? { ...row, is_read: 1 } : row))
-            );
-            setUnread((value) => Math.max(0, value - 1));
-            return;
+             setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+             setUnreadCount(prev => Math.max(0, prev - 1));
+             return;
         }
         try {
-            await api.put(`/notifikasi/${item.id}/read`);
-            setItems((prev) =>
-                prev.map((row) => (row.id === item.id ? { ...row, is_read: 1 } : row))
-            );
-            setUnread((value) => Math.max(0, value - 1));
-        } catch {
-            // abaikan kegagalan; dapat dicoba ulang lewat refresh
+            await api.put(`/notifikasi/${id}/read`);
+            setNotifications(prev => prev.filter(n => n.id !== id));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        } catch (error) {
+            // Silently fail
         }
-    }
+    };
 
-    async function markAllRead() {
-        if (!unread || marking) return;
-        setMarking(true);
+    const markAllAsRead = async () => {
         if (hasFallback) {
-            setItems((prev) => prev.map((row) => ({ ...row, is_read: 1 })));
-            setUnread(0);
-            setMarking(false);
-            return;
+             setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+             setUnreadCount(0);
+             return;
         }
         try {
             await api.put("/notifikasi/read-all");
-            setItems((prev) => prev.map((row) => ({ ...row, is_read: 1 })));
-            setUnread(0);
-        } finally {
-            setMarking(false);
+            setNotifications([]);
+            setUnreadCount(0);
+        } catch (error) {
+            // Silently fail
         }
-    }
+    };
 
     return (
-        <div ref={containerRef} className="relative">
+        <div className="relative">
             <button
                 type="button"
-                onClick={toggleOpen}
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky-50 text-[#0a4778] ring-1 ring-sky-100 transition hover:bg-sky-100"
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="relative p-2 text-slate-400 hover:text-[#0a4778]"
                 aria-label="Notifikasi"
-                title="Notifikasi"
             >
-                <Bell className="h-4 w-4" />
-                {unread > 0 ? (
-                    <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
-                        {unread > 9 ? "9+" : unread}
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5-5m5 5l-5-5m5 5V9a9 9 0 00-9-9h-3a9 9 0 00-9 9v8a9 9 0 009 9h3a9 9 0 009-9v-8z" />
+                </svg>
+                {unreadCount > 0 && (
+                    <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-[#0a4778] text-[10px] text-white">
+                        {unreadCount}
                     </span>
-                ) : null}
+                )}
             </button>
 
-            {open ? (
-                <div className="absolute right-0 z-40 mt-2 w-80 max-w-[92vw] rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5">
-                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                        <p className="text-sm font-semibold text-[#12385d]">Notifikasi</p>
-                        <button
-                            type="button"
-                            onClick={markAllRead}
-                            disabled={!unread || marking}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#0a4778] transition hover:text-[#052f50] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            {marking ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                                <CheckCheck className="h-3.5 w-3.5" />
+            {showDropdown && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                    <div className="border-b border-slate-100 p-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-[#12385d]">Notifikasi</h3>
+                            {notifications.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={markAllAsRead}
+                                    className="text-xs font-semibold text-[#0a4778] hover:underline"
+                                >
+                                    Tandai semua dibaca
+                                </button>
                             )}
-                            Tandai semua
-                        </button>
+                        </div>
                     </div>
 
-                    <div className="max-h-96 overflow-y-auto">
-                        {loading ? (
-                            <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-slate-500">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Memuat...
-                            </div>
-                        ) : items.length === 0 ? (
-                            <div className="px-4 py-8 text-center text-sm text-slate-500">
-                                Belum ada notifikasi.
-                            </div>
-                        ) : (
-                            <ul className="divide-y divide-slate-100">
-                                {items.map((item) => (
-                                    <li
-                                        key={item.id}
-                                        className={`px-4 py-3 transition hover:bg-sky-50/40 ${item.is_read ? "" : "bg-sky-50/60"
-                                            }`}
-                                    >
+                    {notifications.length > 0 ? (
+                        <div className="max-h-64 overflow-y-auto">
+                            {notifications.map((notif) => (
+                                <div
+                                    key={notif.id}
+                                    className="border-b border-slate-100 p-3 hover:bg-slate-50"
+                                >
+                                    <p className="text-xs font-semibold text-[#0a4778]">{notif.judul}</p>
+                                    <p className="mt-1 text-sm text-slate-600">{notif.pesan}</p>
+                                    <p className="mt-1 text-xs text-slate-400">
+                                        {new Date(notif.created_at).toLocaleDateString("id-ID", {
+                                            day: "numeric",
+                                            month: "short",
+                                            hour: "2-digit",
+                                            minute: "2-digit"
+                                        })}
+                                    </p>
+                                    {!notif.is_read && (
                                         <button
                                             type="button"
-                                            onClick={() => markOneRead(item)}
-                                            className="flex w-full items-start gap-3 text-left"
+                                            onClick={() => markAsRead(notif.id)}
+                                            className="mt-2 w-full rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-semibold text-[#0a4778] hover:bg-sky-100"
                                         >
-                                            <span
-                                                className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${item.is_read ? "bg-slate-300" : "bg-rose-500"
-                                                    }`}
-                                            />
-                                            <span className="min-w-0 flex-1">
-                                                <span className="flex items-center justify-between gap-2">
-                                                    <span className="truncate text-sm font-semibold text-[#12385d]">
-                                                        {item.judul}
-                                                    </span>
-                                                    <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-400">
-                                                        {jenisLabel[item.jenis] || item.jenis}
-                                                    </span>
-                                                </span>
-                                                <span className="mt-1 block text-xs leading-5 text-slate-600">
-                                                    {item.pesan}
-                                                </span>
-                                                <span className="mt-1 block text-[11px] text-slate-400">
-                                                    {formatRelative(item.created_at)}
-                                                </span>
-                                            </span>
-                                            {!item.is_read ? (
-                                                <Check className="mt-1 h-4 w-4 shrink-0 text-slate-300" />
-                                            ) : null}
+                                            Tandai dibaca
                                         </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-4 text-center">
+                            <p className="text-sm text-slate-500">Belum ada notifikasi</p>
+                        </div>
+                    )}
                 </div>
-            ) : null}
+            )}
         </div>
     );
-}
-
-function formatRelative(value) {
-    if (!value) return "";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
-    const diffMs = Date.now() - date.getTime();
-    const minutes = Math.floor(diffMs / 60000);
-    if (minutes < 1) return "Baru saja";
-    if (minutes < 60) return `${minutes} menit lalu`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} jam lalu`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days} hari lalu`;
-    return new Intl.DateTimeFormat("id-ID", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-    }).format(date);
 }

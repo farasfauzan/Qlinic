@@ -1,21 +1,20 @@
-import { X } from "lucide-react";
-
 export function Modal({ title, children, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy/55 p-3 backdrop-blur-sm sm:items-center">
-      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-soft ring-1 ring-white/40">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
-          <h2 className="text-lg font-bold text-navy">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[#12385d]">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
-            aria-label="Tutup modal"
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >
-            <X className="h-5 w-5" />
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        {children}
       </div>
     </div>
   );

@@ -1,87 +1,60 @@
-import { AlertTriangle, Info, X } from "lucide-react";
-
-const toneStyles = {
-  danger: {
-    panel: "border-rose-100 bg-rose-50 text-rose-700",
-    button: "bg-rose-600 text-white hover:bg-rose-700 focus-visible:outline-rose-300",
-    icon: AlertTriangle
-  },
-  warning: {
-    panel: "border-amber-100 bg-amber-50 text-amber-700",
-    button: "bg-[#073e69] text-white hover:bg-[#052f50] focus-visible:outline-sky-300",
-    icon: AlertTriangle
-  },
-  info: {
-    panel: "border-sky-100 bg-sky-50 text-[#0a4778]",
-    button: "bg-[#073e69] text-white hover:bg-[#052f50] focus-visible:outline-sky-300",
-    icon: Info
-  }
-};
+import { useEffect, useState } from "react";
 
 export function ConfirmDialog({
   title,
   description,
   details = [],
-  confirmLabel = "Lanjutkan",
-  cancelLabel = "Kembali",
-  tone = "warning",
+  confirmLabel,
+  cancelLabel,
+  tone = "neutral",
   loading = false,
   onConfirm,
   onCancel
 }) {
-  const styles = toneStyles[tone] || toneStyles.warning;
-  const Icon = styles.icon;
+  const [show, setShow] = useState(true);
+
+  useEffect(() => {
+    if (!show) setShow(true);
+  }, [details]);
+
+  const toneStyles = {
+    neutral: "bg-slate-50 text-slate-700",
+    warning: "bg-orange-50 text-orange-700",
+    danger: "bg-rose-50 text-rose-700"
+  };
+
+  const borderColors = {
+    neutral: "border-slate-200",
+    warning: "border-orange-200",
+    danger: "border-rose-200"
+  };
+
+  const buttonColors = {
+    neutral: "bg-[#0a4778] text-white hover:bg-[#073e69]",
+    warning: "bg-orange-600 text-white hover:bg-orange-700",
+    danger: "bg-rose-600 text-white hover:bg-rose-700"
+  };
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-dialog-title"
-    >
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-soft ring-1 ring-white/40">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
-          <div className="flex gap-3">
-            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${styles.panel}`}>
-              <Icon className="h-5 w-5" />
-            </span>
-            <div>
-              <h2 id="confirm-dialog-title" className="text-lg font-bold text-[#12385d]">
-                {title}
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={loading}
-            className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
-            aria-label="Tutup konfirmasi"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {details.length ? (
-          <dl className="grid gap-3 px-5 py-4">
-            {details.map((item) => (
-              <div key={item.label} className="rounded-xl bg-slate-50 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  {item.label}
-                </dt>
-                <dd className="mt-1 text-sm font-semibold text-[#12385d]">{item.value}</dd>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className={`w-full max-w-md rounded-xl border ${borderColors[tone]} bg-white p-6 shadow-xl`}>
+        <h3 className={`text-lg font-bold ${toneStyles[tone].split(" ")[1]}`}>{title}</h3>
+        {description && <p className={`mt-2 text-sm ${toneStyles[tone].split(" ")[1]}`}>{description}</p>}
+        {details.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {details.map((item, index) => (
+              <div key={index} className="flex justify-between border-b border-slate-100 pb-2">
+                <span className="text-sm font-medium text-slate-600">{item.label}</span>
+                <span className="text-sm text-slate-400">{item.value}</span>
               </div>
             ))}
-          </dl>
-        ) : null}
-
-        <div className="grid gap-3 border-t border-slate-100 px-5 py-4 sm:grid-cols-2">
+          </div>
+        )}
+        <div className="mt-6 flex gap-3">
           <button
             type="button"
             onClick={onCancel}
-            disabled={loading}
-            className="min-h-12 rounded-xl border border-slate-200 px-5 py-3 text-base font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50`}
           >
             {cancelLabel}
           </button>
@@ -89,7 +62,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`min-h-12 rounded-xl px-5 py-3 text-base font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 ${styles.button}`}
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${buttonColors[tone]} disabled:opacity-70`}
           >
             {loading ? "Memproses..." : confirmLabel}
           </button>

@@ -1,27 +1,16 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { LoadingState } from "./States";
 
-const dashboardByRole = {
-  pasien: "/patient/dashboard",
-  dokter: "/doctor/dashboard",
-  admin: "/admin/dashboard"
-};
+export function ProtectedRoute({ children, roles }) {
+  const { isAuthenticated } = useAuth();
 
-export function ProtectedRoute({ roles }) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <LoadingState label="Memeriksa sesi..." fullScreen />;
-  }
-
-  if (!user) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (roles?.length && !roles.includes(user.role)) {
-    return <Navigate to={dashboardByRole[user.role] || "/login"} replace />;
+  if (roles && !roles.includes(user?.role)) {
+    return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />;
+  return children;
 }
