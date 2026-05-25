@@ -41,3 +41,12 @@ export function timeSlots() {
     "17:30"
   ];
 }
+
+export function statusClass(status) {
+  const map = {
+    Pending: "bg-amber-100 text-amber-800 ring-amber-200",
+    Done: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+    Cancelled: "bg-rose-100 text-rose-800 ring-rose-200"
+  };
+  return map[status] || "bg-slate-100 text-slate-700 ring-slate-200";
+}
