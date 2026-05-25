@@ -385,12 +385,12 @@ function DoctorCard({ doctor, variant, onBook }) {
 
 function BookingModal({ doctor, onClose }) {
   const dateOptions = useMemo(() => buildDateOptions(), []);
-  const availableSlots = timeSlots.slice(0, 6);
+  const availableSlots = timeSlots().slice(0, 6);
   // Example: disabled last slot
   const disabledSlots = new Set([availableSlots[availableSlots.length - 1]]);
   
   const [tanggal, setTanggal] = useState(dateOptions[1]?.value || toInputDateLocal(new Date()));
-  const [jamSlot, setJamSlot] = useState(availableSlots.find((slot) => !disabledSlots.has(slot)) || timeSlots[0]);
+  const [jamSlot, setJamSlot] = useState(availableSlots.find((slot) => !disabledSlots.has(slot)) || timeSlots()[0]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
